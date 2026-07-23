@@ -1,4 +1,5 @@
 export type PaperSize = "A4" | "A3";
+export type TaskKind = "summary" | "task" | "milestone";
 
 export interface Task {
   id: string;
@@ -7,7 +8,8 @@ export interface Task {
   start: string;
   duration: number;
   progress: number;
-  color: "summary" | "task";
+  kind: TaskKind;
+  color?: string;
   actualStart?: string;
   actualEnd?: string;
   forecastEnd?: string;
