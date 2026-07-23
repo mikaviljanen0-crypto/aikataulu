@@ -74,7 +74,7 @@ function normalizedTasks(project: ProjectState): Task[] {
 function emptyProject(): ProjectState {
   const today = formatDate(new Date());
   return {
-    id: crypto.randomUUID(), projectName: "Uusi projekti", scheduleName: "Yleisaikataulu",
+    id: crypto.randomUUID(), projectName: "Uusi projekti", scheduleName: "Yleisaikataulu", status: "active",
     projectNumber: "", client: "", updatedDate: today, statusDate: today, paperSize: "A4",
     calendar: { workdays: [1,2,3,4,5], holidays: [], shutdownPeriods: [] },
     baseline: null, snapshots: [], scheduleVersions: [], weeklyPlans: [],
@@ -108,6 +108,9 @@ export function ScheduleApp() {
   const [compareLeftId, setCompareLeftId] = useState("");
   const [compareRightId, setCompareRightId] = useState("");
   const [versionDifferences, setVersionDifferences] = useState<VersionDifference[]>([]);
+  const [versionReportOpen, setVersionReportOpen] = useState(false);
+  const [projectSearch, setProjectSearch] = useState("");
+  const [projectListMode, setProjectListMode] = useState<"active" | "archived">("active");
   const [savedAt, setSavedAt] = useState("");
   const [calendarStart, setCalendarStart] = useState(mondayOfWeek("2026-07-06"));
   const importRef = useRef<HTMLInputElement>(null);
@@ -151,7 +154,8 @@ export function ScheduleApp() {
           projects: parsed.projects.map((item) => ({
             ...item,
             weeklyPlans: item.weeklyPlans ?? [],
-            scheduleVersions: item.scheduleVersions ?? []
+            scheduleVersions: item.scheduleVersions ?? [],
+            status: item.status ?? "active"
           }))
         });
       } catch {}
@@ -305,6 +309,30 @@ export function ScheduleApp() {
     commitWorkspace({ ...workspace, activeProjectId: remaining[0].id, projects: remaining }); setSelectedId(remaining[0].tasks[0]?.id ?? "");
   };
 
+  const archiveProject = () => {
+    if (!window.confirm(`Arkistoidaanko projekti ${project.projectName}?`)) return;
+    const nextProjects = workspace.projects.map((item) =>
+      item.id === project.id ? { ...item, status: "archived" as const, archivedAt: new Date().toISOString() } : item
+    );
+    const nextActive = nextProjects.find((item) => item.status !== "archived" && item.id !== project.id)
+      ?? nextProjects.find((item) => item.id !== project.id)
+      ?? project;
+    commitWorkspace({ ...workspace, activeProjectId: nextActive.id, projects: nextProjects });
+    setSelectedId(nextActive.tasks[0]?.id ?? "");
+    setProjectsOpen(false);
+  };
+
+  const restoreArchivedProject = (projectId: string) => {
+    const nextProjects = workspace.projects.map((item) =>
+      item.id === projectId ? { ...item, status: "active" as const, archivedAt: undefined } : item
+    );
+    commitWorkspace({ ...workspace, activeProjectId: projectId, projects: nextProjects });
+    const restored = nextProjects.find((item) => item.id === projectId);
+    setSelectedId(restored?.tasks[0]?.id ?? "");
+    setProjectListMode("active");
+    setProjectsOpen(false);
+  };
+
   const exportWorkspace = () => {
     const blob = new Blob([JSON.stringify(workspace, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
@@ -406,6 +434,37 @@ export function ScheduleApp() {
       return;
     }
     setVersionDifferences(compareScheduleVersions(left, right));
+  };
+
+  const openVersionReport = () => {
+    if (!versionDifferences.length) {
+      compareVersions();
+      window.setTimeout(() => setVersionReportOpen(true), 50);
+      return;
+    }
+    setVersionReportOpen(true);
+  };
+
+  const exportVersionComparisonCsv = () => {
+    if (!versionDifferences.length) return;
+    const rows = [
+      ["Tehtävä", "Tyyppi", "Muutos"],
+      ...versionDifferences.flatMap((difference) =>
+        difference.changes.map((change) => [
+          difference.taskName,
+          difference.type === "added" ? "Lisätty" : difference.type === "removed" ? "Poistettu" : "Muuttunut",
+          change
+        ])
+      )
+    ];
+    const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(";")).join("\n");
+    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "aikatauluversioiden-vertailu.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   const weeklyPlans = project.weeklyPlans ?? [];
@@ -789,8 +848,22 @@ export function ScheduleApp() {
       </div></aside></div>}
 
       {projectsOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer project-drawer"><header><div><strong>Projektit</strong><span>{workspace.projects.length} projektia</span></div><button onClick={() => setProjectsOpen(false)}>×</button></header>
-        <div className="project-list">{workspace.projects.map((item) => <button key={item.id} className={item.id === project.id ? "active-project" : ""} onClick={() => { setWorkspace({ ...workspace, activeProjectId: item.id }); setSelectedId(item.tasks[0]?.id ?? ""); setProjectsOpen(false); setCalendarStart(mondayOfWeek(item.statusDate)); }}><strong>{item.projectName}</strong><span>{item.projectNumber || "Ei projektinumeroa"} · {item.scheduleName}</span></button>)}</div>
-        <div className="drawer-footer"><button className="primary" onClick={createProject}>+ Uusi tyhjä projekti</button><button onClick={duplicateProject}>Kopioi projekti</button><button className="danger" onClick={deleteProject}>Poista projekti</button></div>
+        <div className="project-drawer-controls">
+          <input value={projectSearch} onChange={(e) => setProjectSearch(e.target.value)} placeholder="Hae projektia" />
+          <div><button className={projectListMode === "active" ? "active-view" : ""} onClick={() => setProjectListMode("active")}>Aktiiviset</button><button className={projectListMode === "archived" ? "active-view" : ""} onClick={() => setProjectListMode("archived")}>Arkisto</button></div>
+        </div>
+        <div className="project-list">{workspace.projects
+          .filter((item) => (item.status ?? "active") === projectListMode)
+          .filter((item) => [item.projectName, item.projectNumber ?? "", item.client ?? ""].some((value) => value.toLocaleLowerCase("fi-FI").includes(projectSearch.toLocaleLowerCase("fi-FI"))))
+          .map((item) => <article key={item.id} className={item.id === project.id ? "active-project" : ""}>
+            <button onClick={() => { setWorkspace({ ...workspace, activeProjectId: item.id }); setSelectedId(item.tasks[0]?.id ?? ""); setProjectsOpen(false); setCalendarStart(mondayOfWeek(item.statusDate)); }}>
+              <strong>{item.projectName}</strong>
+              <span>{item.projectNumber || "Ei projektinumeroa"} · {item.scheduleName}</span>
+              <small>{item.tasks.length} tehtävää · {item.snapshots.length} seurantatilannetta</small>
+            </button>
+            {projectListMode === "archived" && <button className="restore-project" onClick={() => restoreArchivedProject(item.id)}>Palauta käyttöön</button>}
+          </article>)}</div>
+        <div className="drawer-footer">{projectListMode === "active" && <><button className="primary" onClick={createProject}>+ Uusi tyhjä projekti</button><button onClick={duplicateProject}>Kopioi projekti</button><button onClick={archiveProject}>Arkistoi projekti</button><button className="danger" onClick={deleteProject}>Poista projekti</button></>}</div>
       </aside></div>}
 
       {calendarOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer compact-drawer"><header><div><strong>Projektikalenteri</strong><span>Työpäivät ja poikkeukset</span></div><button onClick={() => setCalendarOpen(false)}>×</button></header>
@@ -799,6 +872,25 @@ export function ScheduleApp() {
           <div className="holiday-list">{project.calendar.holidays.map((date) => <span key={date}>{date}<button onClick={() => updateProject({ calendar: { ...project.calendar, holidays: project.calendar.holidays.filter((item) => item !== date) } })}>×</button></span>)}</div>
         </div>
       </aside></div>}
+
+      {versionReportOpen && <div className="report-backdrop"><section className="version-report">
+        <header className="report-actions no-print"><button onClick={() => setVersionReportOpen(false)}>Sulje</button><button className="primary" onClick={() => window.print()}>Tulosta / PDF</button></header>
+        <div className="version-report-heading">
+          <h1>{project.projectName}</h1>
+          <h2>Aikatauluversioiden vertailu</h2>
+          <p>{scheduleVersions.find((item) => item.id === compareLeftId)?.title ?? "Vanhempi versio"} → {scheduleVersions.find((item) => item.id === compareRightId)?.title ?? "Uudempi versio"}</p>
+          <span>Raportti laadittu {new Date().toLocaleDateString("fi-FI")}</span>
+        </div>
+        <table className="version-report-table">
+          <thead><tr><th>Tehtävä</th><th>Luokitus</th><th>Muutokset</th></tr></thead>
+          <tbody>{versionDifferences.map((difference) => <tr key={`${difference.taskId}-${difference.type}`}>
+            <td>{difference.taskName}</td>
+            <td>{difference.type === "added" ? "Lisätty" : difference.type === "removed" ? "Poistettu" : "Muuttunut"}</td>
+            <td><ul>{difference.changes.map((change) => <li key={change}>{change}</li>)}</ul></td>
+          </tr>)}</tbody>
+        </table>
+        <footer><span>Muutoksia yhteensä: {versionDifferences.length}</span><span>{project.projectNumber || ""}</span></footer>
+      </section></div>}
 
       {versionsOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer versions-drawer"><header><div><strong>Aikatauluversiot</strong><span>Tallenna, palauta ja vertaa suunnittelutilanteita</span></div><button onClick={() => setVersionsOpen(false)}>×</button></header>
         <div className="version-create">
@@ -820,6 +912,8 @@ export function ScheduleApp() {
               {scheduleVersions.map((version) => <option key={version.id} value={version.id}>{version.title}</option>)}
             </select>
             <button onClick={compareVersions}>Vertaa</button>
+            <button onClick={openVersionReport}>Tulostettava raportti</button>
+            <button onClick={exportVersionComparisonCsv} disabled={!versionDifferences.length}>Vie CSV</button>
           </div>
           {versionDifferences.length > 0 && <div className="version-differences">
             <strong>{versionDifferences.length} muutosta</strong>

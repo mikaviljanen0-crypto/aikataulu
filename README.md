@@ -1,48 +1,41 @@
-# Aikatauluohjelmisto v1.3
+# Aikatauluohjelmisto v1.4
 
 Rakennusalan yleis- ja viikkoaikataulun kehitysversio.
 
-## Uutta v1.3-versiossa
+## Uutta v1.4-versiossa
 
-### Aikatauluversioiden vertailu
+### Projektien arkistointi
 
-Kaksi tallennettua aikatauluversiota voidaan verrata keskenään. Vertailu tunnistaa:
+- projekti voidaan siirtää arkistoon ilman poistamista
+- aktiiviset ja arkistoidut projektit näkyvät erillisillä välilehdillä
+- arkistoitu projekti voidaan palauttaa käyttöön
+- projektihakua voidaan käyttää nimellä, projektinumerolla tai asiakkaalla
+- projektikortissa näkyy tehtävien ja seurantatilanteiden määrä
 
+Arkistointi sopii valmistuneille työmaille. Poistamista tarvitaan vain virheellisesti luoduille projekteille.
+
+### Tulostettava versiovertailuraportti
+
+Aikatauluversioiden vertailusta voidaan avata oma raporttinäkymä, jossa näkyvät:
+
+- projekti
+- vertailtavien versioiden nimet
 - lisätyt tehtävät
 - poistetut tehtävät
-- nimen muutokset
-- aloituspäivän muutokset
-- keston muutokset
-- hierarkiatason muutokset
-- rakennuksen tai alueen muutokset
-- vastuuhenkilön muutokset
-- riippuvuuksien muutokset
-- viiveiden muutokset
-- värimuutokset
+- muuttuneet tehtävät
+- jokaisen tehtävän tarkat muutokset
+- muutosten kokonaismäärä
 
-Vertailun tulokset ryhmitellään lisättyihin, poistettuihin ja muuttuneisiin tehtäviin.
+Raportti voidaan tulostaa PDF:ksi tai paperille.
 
-### Poikkeama tavoitteesta
+### CSV-vienti
 
-Kun tehtävän nykyinen aloitus tai kesto poikkeaa tallennetusta tavoitteesta:
-
-- tavoitejana korostetaan
-- tehtävärivi merkitään oranssilla reunalla
-
-Näin työmaakokouksen seurantatulosteesta näkee nopeasti tehtävät, joiden suunnitelmaa on muutettu.
-
-## Käyttöesimerkki
-
-1. Tallenna versio `Urakkasopimuksen aikataulu`.
-2. Muokkaa aikataulua työmaan edetessä.
-3. Tallenna versio `Työmaakokous 4`.
-4. Valitse molemmat versiot vertailuun.
-5. Ohjelma näyttää tarkasti, mitkä työvaiheet ja päivämäärät muuttuivat.
+Versiovertailun tulokset voidaan viedä puolipiste-eroteltuna CSV-tiedostona Excel-käsittelyä varten.
 
 ## Seuraavat pääkohteet
 
-1. projektien palvelintallennus
-2. kirjautuminen ja käyttäjäroolit
-3. Tocoman-tuonnin tehtäväesikatselu
-4. tulostettava versiovertailuraportti
-5. projektien arkistointi
+1. palvelintallennus ja kirjautuminen
+2. käyttäjäroolit ja yrityskohtaiset projektit
+3. seurantatulosteen pysyvä PDF-arkisto
+4. Tocoman-tuonnin tehtäväesikatselu
+5. projektin arkistodokumentit ja liitteet

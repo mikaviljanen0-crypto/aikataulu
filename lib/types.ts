@@ -78,10 +78,14 @@ export interface WeeklyPlan {
   items: WeeklyPlanItem[];
 }
 
+export type ProjectStatus = "active" | "archived";
+
 export interface ProjectState {
   id: string;
   projectName: string;
   scheduleName: string;
+  status?: ProjectStatus;
+  archivedAt?: string;
   projectNumber?: string;
   client?: string;
   updatedDate: string;

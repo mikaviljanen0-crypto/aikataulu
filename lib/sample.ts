@@ -5,6 +5,7 @@ export const initialProject: ProjectState = {
   id: "kissankello",
   projectName: "As Oy Kissankello",
   scheduleName: "Yleisaikataulu",
+  status: "active",
   projectNumber: "2607",
   client: "As Oy Kissankello",
   updatedDate: "2026-07-23",
