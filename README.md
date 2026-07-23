@@ -1,28 +1,37 @@
-# Aikatauluohjelmisto
+# Aikatauluohjelmisto v0.2
 
-Ensimmäinen toimiva selainprototyyppi Tocomanin korvaajalle.
+Ensimmäinen Next.js + TypeScript -pohjainen sovellusrunko rakennusalan jana-aikataululle.
+
+## Tässä versiossa
+
+- tyhjästä muokattava tehtävätaulukko ja WBS-hierarkia
+- tehtävien lisääminen, poistaminen, sisennys, ulonnus ja rivijärjestys
+- Gantt-janojen siirtäminen ja keston muuttaminen hiirellä
+- tavoiteaikataulun tallentaminen
+- toteumaseuranta: valmiusaste, toteutunut alku/loppu, ennuste ja huomautus
+- kuukausittaisten seurantatilanteiden tallennus
+- A4- ja A3-vaakatulostus
+- projektin automaattinen paikallistallennus
+- JSON-varmuuskopiointi ja palautus
 
 ## Käynnistys
 
-Avaa `prototype/index.html` selaimessa. Erillistä asennusta ei tarvita.
+Node.js 20 tai uudempi:
 
-## Prototyypissä toimivat
+```bash
+npm install
+npm run dev
+```
 
-- tehtävien lisääminen ja solujen muokkaus
-- tehtävähierarkian sisennys ja ulonnus
-- jana siirrettävissä hiirellä
-- janan kesto muutettavissa oikeasta reunasta
-- tavoiteaikataulun tallennus
-- toteumaprosentti sekä toteutunut alku/loppu
-- seurantahetken pystyviiva
-- A4- ja A3-vaakatulostus / PDF
-- automaattinen paikallinen tallennus selaimeen
+Avaa selaimessa `http://localhost:3000`.
 
-## Ensimmäisen tuotantoversion tavoite
+## Seuraavat työvaiheet
 
-1. Projektien pysyvä tietokanta ja käyttäjät
-2. Luotettava työpäiväkalenteri ja lomat
-3. Tavoitteiden versiointi ja työmaakokousten seurantatilanteet
-4. Tocoman `.plr` -tuonti
-5. Excel-tuonti ja -vienti
-6. A4/A3-tulostuksen tarkka esikatselu
+1. Oikea tietokanta ja käyttäjähallinta
+2. Projektien luettelo ja projektin avaaminen
+3. suomalaiset pyhäpäivät ja projektikohtaiset kalenterit
+4. summatehtävien automaattinen laskenta alatehtävistä
+5. seuranta-aikataulujen versiohistoria ja vertailu
+6. Tocoman `.plr` -tuontitutkimus
+7. Excel-tuonti ja -vienti
+8. tulostuksen tarkka Tocoman-tyylinen esikatselu
