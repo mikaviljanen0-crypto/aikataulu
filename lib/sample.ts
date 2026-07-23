@@ -47,6 +47,10 @@ export const initialWorkspace: WorkspaceState = {
     showEnd: true,
     showProgress: true,
     showLegend: true,
-    fitToOnePage: true
+    fitToOnePage: true,
+    pageMode: "one-page",
+    rangeStart: "2026-07-06",
+    rangeEnd: "2026-12-06",
+    repeatHeader: true
   }
 };

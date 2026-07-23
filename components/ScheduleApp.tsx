@@ -10,7 +10,7 @@ import { comparePlrFiles, rangeLabel, type PlrComparison } from "../lib/plrCompa
 const STORAGE_KEY = "aikataulu-v0.4";
 const PX_PER_DAY = 11;
 const ROW_HEIGHT = 38;
-const WEEKS_VISIBLE = 22;
+const DEFAULT_WEEKS_VISIBLE = 22;
 
 function buildWbs(tasks: Task[], index: number): string {
   const counters: number[] = [];
@@ -35,10 +35,28 @@ function normalizedTasks(project: ProjectState): Task[] {
   const { workdays, holidays } = project.calendar;
   const printSettings = workspace.printSettings ?? {
     showWbs: true, showDuration: true, showStart: true, showEnd: true,
-    showProgress: true, showLegend: true, fitToOnePage: true
+    showProgress: true, showLegend: true, fitToOnePage: true,
+    pageMode: "one-page" as const,
+    rangeStart: mondayOfWeek(project.tasks[0]?.start ?? project.statusDate),
+    rangeEnd: addCalendarDays(project.statusDate, 154),
+    repeatHeader: true
   };
   const updatePrintSettings = (patch: Partial<typeof printSettings>) =>
     commitWorkspace({ ...workspace, printSettings: { ...printSettings, ...patch } });
+
+  const applyPrintRange = () => {
+    const start = mondayOfWeek(printSettings.rangeStart || project.statusDate);
+    setCalendarStart(start);
+  };
+
+  const useProjectRange = () => {
+    const starts = tasks.map((task) => task.start).sort();
+    const ends = tasks.map((task) => workdayEnd(task.start, task.duration, workdays, holidays)).sort();
+    const rangeStart = mondayOfWeek(starts[0] ?? project.statusDate);
+    const rangeEnd = ends[ends.length - 1] ?? project.statusDate;
+    updatePrintSettings({ rangeStart, rangeEnd });
+    setCalendarStart(rangeStart);
+  };
   return project.tasks.map((task, index, tasks) => {
     const children = descendants(tasks, index).filter((child) => child.level === task.level + 1);
     if (children.length === 0) return { ...task, kind: task.kind === "summary" ? "task" : task.kind };
@@ -132,19 +150,42 @@ export function ScheduleApp() {
   const { workdays, holidays } = project.calendar;
   const printSettings = workspace.printSettings ?? {
     showWbs: true, showDuration: true, showStart: true, showEnd: true,
-    showProgress: true, showLegend: true, fitToOnePage: true
+    showProgress: true, showLegend: true, fitToOnePage: true,
+    pageMode: "one-page" as const,
+    rangeStart: mondayOfWeek(project.tasks[0]?.start ?? project.statusDate),
+    rangeEnd: addCalendarDays(project.statusDate, 154),
+    repeatHeader: true
   };
   const updatePrintSettings = (patch: Partial<typeof printSettings>) =>
     commitWorkspace({ ...workspace, printSettings: { ...printSettings, ...patch } });
 
+  const applyPrintRange = () => {
+    const start = mondayOfWeek(printSettings.rangeStart || project.statusDate);
+    setCalendarStart(start);
+  };
+
+  const useProjectRange = () => {
+    const starts = tasks.map((task) => task.start).sort();
+    const ends = tasks.map((task) => workdayEnd(task.start, task.duration, workdays, holidays)).sort();
+    const rangeStart = mondayOfWeek(starts[0] ?? project.statusDate);
+    const rangeEnd = ends[ends.length - 1] ?? project.statusDate;
+    updatePrintSettings({ rangeStart, rangeEnd });
+    setCalendarStart(rangeStart);
+  };
+
+  const visibleWeeks = useMemo(() => {
+    if (!printSettings.rangeStart || !printSettings.rangeEnd) return DEFAULT_WEEKS_VISIBLE;
+    return Math.max(4, Math.ceil((daysBetween(printSettings.rangeStart, printSettings.rangeEnd) + 1) / 7));
+  }, [printSettings.rangeStart, printSettings.rangeEnd]);
+
   const calendarWeeks = useMemo(() => {
     const start = parseDate(calendarStart);
-    return Array.from({ length: WEEKS_VISIBLE }, (_, index) => {
+    return Array.from({ length: visibleWeeks }, (_, index) => {
       const date = new Date(start);
       date.setDate(date.getDate() + index * 7);
       return { date, week: isoWeek(date), month: monthName(date) };
     });
-  }, [calendarStart]);
+  }, [calendarStart, visibleWeeks]);
 
   const updateTask = (id: string, patch: Partial<Task>) => updateProject({ tasks: project.tasks.map((task) => task.id === id ? { ...task, ...patch } : task) });
 
@@ -280,7 +321,7 @@ export function ScheduleApp() {
         <span><i className="legend-status" />Seurantahetki</span>
       </section>}
 
-      <main className={`schedule-grid ${printSettings.fitToOnePage ? "fit-one-page" : ""}`}>
+      <main className={`schedule-grid ${printSettings.fitToOnePage ? "fit-one-page" : ""} ${printSettings.pageMode === "multi-page" ? "multi-page-print" : ""} ${printSettings.repeatHeader ? "repeat-print-header" : ""}`}>
         <div className="table-pane">
           <table><thead><tr><th className="select-column"></th>{printSettings.showWbs && <th className="wbs-column">Hier</th>}<th>Työvaihe</th>{printSettings.showDuration && <th className="duration-column">Kesto</th>}{printSettings.showStart && <th className="date-column">Alku</th>}{printSettings.showEnd && <th className="date-column">Loppu</th>}{printSettings.showProgress && <th className="progress-column">Valmis %</th>}</tr></thead>
             <tbody>{tasks.map((task, index) => (
@@ -298,7 +339,8 @@ export function ScheduleApp() {
         <div className="gantt-pane">
           <div className="calendar-header">{calendarWeeks.map(({ week, month }, index) => <div className="calendar-week" key={`${week}-${index}`}><span>{month}</span><strong>vko {week}</strong></div>)}</div>
           <div className="gantt-body" style={{ height: tasks.length * ROW_HEIGHT }}>
-            <div className="status-line" style={{ left: startOffset(project.statusDate) }} />
+            <div className="status-line" style={{ left: startOffset(project.statusDate) }}><span>{project.statusDate}</span></div>
+            {calendarWeeks.map(({ date }, index) => date.getDate() <= 7 ? <div className="month-separator" key={`month-${index}`} style={{ left: index * 7 * PX_PER_DAY }} /> : null)}
             {tasks.map((task, index) => {
               const left = startOffset(task.start), width = durationWidth(task), baseline = project.baseline?.[task.id];
               return <div className="gantt-row" style={{ top: index * ROW_HEIGHT }} key={task.id}>
@@ -382,12 +424,28 @@ export function ScheduleApp() {
           <label><input type="checkbox" checked={printSettings.showProgress} onChange={(e) => updatePrintSettings({ showProgress: e.target.checked })} /> Valmiusaste</label>
           <label><input type="checkbox" checked={printSettings.showLegend} onChange={(e) => updatePrintSettings({ showLegend: e.target.checked })} /> Selite</label>
           <label><input type="checkbox" checked={printSettings.fitToOnePage} onChange={(e) => updatePrintSettings({ fitToOnePage: e.target.checked })} /> Sovita yhdelle sivulle</label>
-          <div className="print-preview-card">
-            <strong>{project.paperSize} vaaka</strong>
-            <span>{project.projectName}</span>
-            <span>{tasks.length} riviä · {WEEKS_VISIBLE} viikkoa</span>
+          <label><input type="checkbox" checked={printSettings.repeatHeader} onChange={(e) => updatePrintSettings({ repeatHeader: e.target.checked })} /> Toista otsikkorivi monisivutulosteessa</label>
+
+          <div className="print-range-box">
+            <strong>Tulostettava aikaväli</strong>
+            <label>Alku<input type="date" value={printSettings.rangeStart} onChange={(e) => updatePrintSettings({ rangeStart: e.target.value })} /></label>
+            <label>Loppu<input type="date" value={printSettings.rangeEnd} onChange={(e) => updatePrintSettings({ rangeEnd: e.target.value })} /></label>
+            <div><button onClick={useProjectRange}>Koko projektin aikaväli</button><button onClick={applyPrintRange}>Näytä aikaväli</button></div>
           </div>
-          <button className="primary" onClick={() => { setPrintOpen(false); setTimeout(() => window.print(), 50); }}>Avaa tulostus / PDF</button>
+
+          <div className="print-page-mode">
+            <strong>Sivutus</strong>
+            <label><input type="radio" name="pageMode" checked={printSettings.pageMode === "one-page"} onChange={() => updatePrintSettings({ pageMode: "one-page", fitToOnePage: true })} /> Yksi sivu</label>
+            <label><input type="radio" name="pageMode" checked={printSettings.pageMode === "multi-page"} onChange={() => updatePrintSettings({ pageMode: "multi-page", fitToOnePage: false })} /> Useita sivuja</label>
+          </div>
+
+          <div className="print-preview-card">
+            <strong>{project.paperSize} vaaka · {printSettings.pageMode === "one-page" ? "1 sivu" : "monisivu"}</strong>
+            <span>{project.projectName}</span>
+            <span>{tasks.length} riviä · {visibleWeeks} viikkoa</span>
+            <span>{printSettings.rangeStart} – {printSettings.rangeEnd}</span>
+          </div>
+          <button className="primary" onClick={() => { applyPrintRange(); setPrintOpen(false); setTimeout(() => window.print(), 80); }}>Avaa tulostus / PDF</button>
         </div>
       </aside></div>}
 

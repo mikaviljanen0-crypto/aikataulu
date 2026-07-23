@@ -1,34 +1,31 @@
-# Aikatauluohjelmisto v0.7
+# Aikatauluohjelmisto v0.8
 
 Rakennusalan jana-aikatauluohjelmiston kehitysversio.
 
-## Uutta v0.7-versiossa
+## Uutta v0.8-versiossa
 
-- kumoa ja tee uudelleen -toiminnot
-- enintään 40 viimeisimmän muutoksen paikallinen muutoshistoria
-- erillinen tulostusasetusten paneeli
-- tulostettavien taulukkosarakkeiden valinta
-- selitteen näyttäminen tai piilottaminen
-- yhdelle sivulle sovittaminen
-- A4- ja A3-vaakatulostuksen esikatselutiedot
-- tulostukseen tiivistetyt rivi- ja tekstikoot
+- tulostusalueen alku- ja loppupäivän rajaus
+- koko projektin aikavälin automaattinen valinta
+- yhden sivun ja monisivutulostuksen valinta
+- otsikkorivin toisto monisivutulosteessa
+- tulostuksen aikavälin huomioiva dynaaminen viikkomäärä
+- seurantahetken päivämäärä näkyy tilanneviivan päällä
+- kuukausien vaihtumiskohdat korostetaan pystylinjoilla
+- tulostuksen esikatselukortissa näkyy aikaväli, viikkojen määrä ja sivutustapa
 
-## Tulostuksen tavoite
+## Tulostusperiaate
 
-Työmaakokoukseen vietävä seurantatuloste voidaan pitää tiiviinä:
+Työnjohtaja voi valita esimerkiksi:
 
-- projekti ja aikataulun nimi
-- valitut taulukkosarakkeet
-- tavoitejana
-- suunnitelma / jäljellä
-- toteutuma
-- seurantahetki
-- päivitetty-päivämäärä
+- A4 vaaka, yksi sivu, työmaakokouksen seurantatuloste
+- A3 vaaka, yksi sivu, laajempi yleisaikataulu
+- A4/A3 monisivu, usealle vuodelle ulottuva kohde
+- rajattu kuukausi- tai työvaihejakso
 
 ## Seuraavat pääkohteet
 
-1. oikea tulostusalueen päivämäärärajaus
-2. automaattinen sivutus pitkille aikatauluille
-3. Tocoman-tuonnin kenttäkartan tarkentaminen
-4. tavoitteen ja toteuman selkeämpi tilanneviiva
-5. projektien tallennus palvelintietokantaan
+1. rivien ja jana-alueen tarkempi automaattinen skaalaus
+2. todellinen PDF-esikatselu ennen selaimen tulostusikkunaa
+3. Tocoman `.plr` -kenttäkartan jatkotutkimus
+4. tehtävien suodatus rakennuksen tai työvaihekokonaisuuden mukaan
+5. ensimmäinen palvelintallennus

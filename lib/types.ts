@@ -49,6 +49,8 @@ export interface ProjectState {
   snapshots: TrackingSnapshot[];
 }
 
+export type PrintPageMode = "one-page" | "multi-page";
+
 export interface PrintSettings {
   showWbs: boolean;
   showDuration: boolean;
@@ -57,6 +59,10 @@ export interface PrintSettings {
   showProgress: boolean;
   showLegend: boolean;
   fitToOnePage: boolean;
+  pageMode: PrintPageMode;
+  rangeStart: string;
+  rangeEnd: string;
+  repeatHeader: boolean;
 }
 
 export interface WorkspaceState {
