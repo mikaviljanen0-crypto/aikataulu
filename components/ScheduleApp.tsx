@@ -5,6 +5,7 @@ import { addCalendarDays, addWorkdays, daysBetween, formatDate, isoWeek, mondayO
 import { initialWorkspace } from "../lib/sample";
 import type { ProjectState, Task, TaskKind, WorkspaceState } from "../lib/types";
 import { inspectPlr, type PlrReport } from "../lib/plrInspector";
+import { comparePlrFiles, rangeLabel, type PlrComparison } from "../lib/plrCompare";
 
 const STORAGE_KEY = "aikataulu-v0.4";
 const PX_PER_DAY = 11;
@@ -65,10 +66,13 @@ export function ScheduleApp() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [plrOpen, setPlrOpen] = useState(false);
   const [plrReport, setPlrReport] = useState<PlrReport | null>(null);
+  const [plrComparison, setPlrComparison] = useState<PlrComparison | null>(null);
+  const [plrBusy, setPlrBusy] = useState(false);
   const [savedAt, setSavedAt] = useState("");
   const [calendarStart, setCalendarStart] = useState(mondayOfWeek("2026-07-06"));
   const importRef = useRef<HTMLInputElement>(null);
   const plrRef = useRef<HTMLInputElement>(null);
+  const plrCompareRef = useRef<HTMLInputElement>(null);
 
   const project = workspace.projects.find((item) => item.id === workspace.activeProjectId) ?? workspace.projects[0];
 
@@ -329,11 +333,29 @@ export function ScheduleApp() {
       {plrOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer plr-drawer"><header><div><strong>Tocoman .plr -analyysi</strong><span>Ensimmäinen vaihe vanhojen aikataulujen tuontiin</span></div><button onClick={() => setPlrOpen(false)}>×</button></header>
         <div className="plr-panel">
           <p>Valitse Tocomanin <code>.plr</code>-tiedosto. Analyysi tehdään vain selaimessa, eikä tiedostoa muuteta.</p>
-          <button className="primary" onClick={() => plrRef.current?.click()}>Valitse .plr-tiedosto</button>
+          <div className="plr-actions">
+            <button className="primary" onClick={() => plrRef.current?.click()}>Analysoi yksi tiedosto</button>
+            <button onClick={() => plrCompareRef.current?.click()}>Vertaa useita .plr-tiedostoja</button>
+          </div>
           <input ref={plrRef} hidden type="file" accept=".plr,application/octet-stream" onChange={async (event) => {
             const file = event.target.files?.[0];
-            if (file) setPlrReport(await inspectPlr(file));
+            if (file) {
+              setPlrComparison(null);
+              setPlrReport(await inspectPlr(file));
+            }
           }} />
+          <input ref={plrCompareRef} hidden multiple type="file" accept=".plr,application/octet-stream" onChange={async (event) => {
+            const files = [...(event.target.files ?? [])];
+            if (files.length >= 2) {
+              setPlrBusy(true);
+              setPlrReport(null);
+              try { setPlrComparison(await comparePlrFiles(files)); }
+              finally { setPlrBusy(false); }
+            } else if (files.length === 1) {
+              window.alert("Valitse vähintään kaksi .plr-tiedostoa vertailuun.");
+            }
+          }} />
+          {plrBusy && <p><strong>Analysoidaan tiedostoja…</strong></p>}
           {plrReport && <div className="plr-report">
             <h3>{plrReport.fileName}</h3>
             <dl><dt>Koko</dt><dd>{Math.round(plrReport.fileSize / 1024)} kt</dd><dt>OLE-säiliö</dt><dd>{plrReport.isCompoundFile ? "Kyllä" : "Ei"}</dd></dl>
@@ -343,6 +365,38 @@ export function ScheduleApp() {
             <div className="string-samples">{plrReport.textSamples.slice(0, 35).map((value, index) => <code key={`${value}-${index}`}>{value}</code>)}</div>
             <h4>Johtopäätökset</h4>
             <ul>{plrReport.notes.map((value) => <li key={value}>{value}</li>)}</ul>
+          </div>}
+          {plrComparison && <div className="plr-report comparison-report">
+            <h3>Binäärivertailu</h3>
+            <p>Vertailun lähtötiedosto: <strong>{plrComparison.baseline}</strong>. Tiedostojen järjestys määräytyy valintaikkunan järjestyksen mukaan.</p>
+            <div className="file-summary-grid">
+              {plrComparison.files.map((file) => <article key={file.name}>
+                <strong>{file.name}</strong>
+                <span>{Math.round(file.size / 1024)} kt</span>
+                <span>{file.ole ? "OLE tunnistettu" : "Ei OLE-tunnistusta"}</span>
+                <code>{file.checksum.slice(0, 16)}…</code>
+              </article>)}
+            </div>
+            {plrComparison.comparisons.map((comparison) => <section className="comparison-item" key={comparison.file}>
+              <h4>{comparison.file} verrattuna tiedostoon {plrComparison.baseline}</h4>
+              <dl>
+                <dt>Kokoero</dt><dd>{comparison.sizeDifference >= 0 ? "+" : ""}{comparison.sizeDifference} tavua</dd>
+                <dt>Muuttuneita tavuja</dt><dd>{comparison.changedBytes}</dd>
+                <dt>Muutosalueita</dt><dd>{comparison.changedRanges.length} suurinta näytetään</dd>
+              </dl>
+              <details>
+                <summary>Suurimmat muuttuneet alueet</summary>
+                <ol>{comparison.changedRanges.map((range, index) => <li key={`${range.start}-${index}`}><code>{rangeLabel(range)}</code></li>)}</ol>
+              </details>
+              <details>
+                <summary>Lisätyt tekstijonot ({comparison.addedStrings.length})</summary>
+                <div className="string-samples">{comparison.addedStrings.map((value, index) => <code key={`${value}-${index}`}>{value}</code>)}</div>
+              </details>
+              <details>
+                <summary>Poistuneet tekstijonot ({comparison.removedStrings.length})</summary>
+                <div className="string-samples">{comparison.removedStrings.map((value, index) => <code key={`${value}-${index}`}>{value}</code>)}</div>
+              </details>
+            </section>)}
           </div>}
         </div>
       </aside></div>}

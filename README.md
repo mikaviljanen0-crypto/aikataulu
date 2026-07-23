@@ -1,31 +1,36 @@
-# Aikatauluohjelmisto v0.5
+# Aikatauluohjelmisto v0.6
 
 Rakennusalan jana-aikatauluohjelmiston kehitysversio.
 
-## Uutta v0.5-versiossa
+## Uutta v0.6-versiossa
 
-- Tocoman `.plr` -tiedostojen selaimessa toimiva, turvallinen analyysityökalu
-- OLE / Microsoft Compound Document -tiedostomuodon tunnistus
-- Tocomanin versio- ja tietovirtanimien poiminta
-- tiedoston sisältämien luettavien tekstinäytteiden tarkastelu
-- toteutuma näytetään omana vihreänä jananaan
-- tavoite, suunnitelma/jäljellä, toteutuma ja seurantahetki näkyvät selkeässä legendassa
-- janan siirto ja venytys palautettu Gantt-näkymään
-- projektikalenteri huomioidaan myös hiirellä siirrossa
+- useiden Tocoman `.plr` -tiedostojen yhtäaikainen vertailu
+- SHA-256-tarkistussumma jokaiselle tiedostolle
+- tiedostokokojen ja OLE-tunnistuksen vertailu
+- muuttuneiden tavujen lukumäärä
+- suurimpien muuttuneiden tavuvälien paikantaminen heksadesimaaliosoitteilla
+- lisättyjen ja poistuneiden ASCII-/UTF-16-tekstijonojen vertailu
+- vertailu toimii paikallisesti selaimessa eikä muuta alkuperäisiä tiedostoja
 
-## Tocoman-tuonnin tila
+## Todellisesta testiaineistosta havaittu
 
-v0.5 ei vielä tuo tehtäviä automaattisesti. Se tekee ensimmäisen teknisen analyysin `.plr`-tiedostosta ja näyttää:
+Tiedostojen `1.plr–7.plr` koot jakautuvat kolmeen ryhmään:
 
-- tunnistetaanko tiedosto OLE-säiliöksi
-- mitä Tocoman-/Pluto-versioviitteitä löytyy
-- mitä luettavia tietovirtojen nimiä ja tekstinäytteitä tiedostossa on
+- 1–3: 86 528 tavua
+- 4–6: 80 896 tavua
+- 7: 81 920 tavua
 
-Seuraava vaihe on vertailla testitiedostoja 1–7 ja paikantaa tehtävänimen, aloituspäivän, keston, hierarkian ja värin binäärirakenteet.
+Tämä viittaa siihen, että tiedostoissa on sekä kenttäkohtaisia muutoksia että kokonaisia rakenteellisia muutoksia. v0.6 auttaa erottamaan nämä toisistaan ennen varsinaisen tuontiparserin tekemistä.
 
-## Käynnistys kehityskoneella
+## Seuraava vaihe
 
-```bash
-npm install
-npm run dev
-```
+Vertailutulosten perusteella rakennetaan kenttäkartta:
+
+1. tehtävän nimi
+2. aloituspäivä
+3. kesto
+4. hierarkiataso
+5. janan väri ja tyyli
+6. tavoite- ja toteumatieto
+
+Kun kenttäkartta on riittävän luotettava, ensimmäinen `.plr`-tehtävien tuonti lisätään esikatselutilassa.
