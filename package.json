@@ -1,74 +1,22 @@
-export type PaperSize = "A4" | "A3";
-export type TaskKind = "summary" | "task" | "milestone";
-
-export interface ProjectCalendar {
-  workdays: number[];
-  holidays: string[];
-  shutdownPeriods: Array<{ id: string; name: string; start: string; end: string }>;
-}
-
-export interface Task {
-  id: string;
-  name: string;
-  level: number;
-  start: string;
-  duration: number;
-  progress: number;
-  kind: TaskKind;
-  color?: string;
-  location?: string;
-  responsible?: string;
-  actualStart?: string;
-  actualEnd?: string;
-  forecastEnd?: string;
-  note?: string;
-}
-
-export interface BaselineTask {
-  start: string;
-  duration: number;
-}
-
-export interface TrackingSnapshot {
-  id: string;
-  date: string;
-  createdAt: string;
-  tasks: Array<Pick<Task, "id" | "progress" | "actualStart" | "actualEnd" | "forecastEnd" | "note">>;
-}
-
-export interface ProjectState {
-  id: string;
-  projectName: string;
-  scheduleName: string;
-  projectNumber?: string;
-  client?: string;
-  updatedDate: string;
-  statusDate: string;
-  paperSize: PaperSize;
-  calendar: ProjectCalendar;
-  tasks: Task[];
-  baseline: Record<string, BaselineTask> | null;
-  snapshots: TrackingSnapshot[];
-}
-
-export type PrintPageMode = "one-page" | "multi-page";
-
-export interface PrintSettings {
-  showWbs: boolean;
-  showDuration: boolean;
-  showStart: boolean;
-  showEnd: boolean;
-  showProgress: boolean;
-  showLegend: boolean;
-  fitToOnePage: boolean;
-  pageMode: PrintPageMode;
-  rangeStart: string;
-  rangeEnd: string;
-  repeatHeader: boolean;
-}
-
-export interface WorkspaceState {
-  activeProjectId: string;
-  projects: ProjectState[];
-  printSettings?: PrintSettings;
+{
+  "name": "aikataulu",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "15.4.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.1.0",
+    "@types/react": "19.1.9",
+    "@types/react-dom": "19.1.7",
+    "typescript": "5.8.3"
+  }
 }

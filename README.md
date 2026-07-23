@@ -1,81 +1,43 @@
-export interface PlrReport {
-  fileName: string;
-  fileSize: number;
-  isCompoundFile: boolean;
-  streamNames: string[];
-  textSamples: string[];
-  probableVersionNames: string[];
-  notes: string[];
-}
+# Aikatauluohjelmisto v1.0
 
-const OLE_SIGNATURE = [0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1];
+Ensimmäinen kokonainen käyttölogiikan versio rakennusalan jana- ja viikkoaikataulusta.
 
-function unique(values: string[]): string[] {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
+## Uutta v1.0-versiossa
 
-function extractUtf16Strings(bytes: Uint8Array): string[] {
-  const values: string[] = [];
-  let current = "";
-  for (let i = 0; i + 1 < bytes.length; i += 2) {
-    const code = bytes[i] | (bytes[i + 1] << 8);
-    const allowed = code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126) || (code >= 160 && code <= 591);
-    if (allowed) current += String.fromCharCode(code);
-    else {
-      if (current.trim().length >= 4) values.push(current.trim());
-      current = "";
-    }
-  }
-  if (current.trim().length >= 4) values.push(current.trim());
-  return values;
-}
+- erillinen Yleisaikataulu- ja Viikkoaikataulu-näkymä
+- viikkoaikataulun luominen valitun viikon yleisaikataulutehtävistä
+- työtehtävien tarkentaminen viikkotasolle
+- viikon päivä, rakennus/alue, vastuuhenkilö ja tavoite
+- tehtävän tila:
+  - Suunniteltu
+  - Käynnissä
+  - Valmis
+  - Estynyt
+- vapaat huomautukset
+- uusien viikkotehtävien lisääminen käsin
+- viikkotehtävien poistaminen
+- edellisen ja seuraavan viikon selaaminen
+- A4-vaakatulostukseen sopiva viikkoaikataulutaulukko
+- valmiiden ja estyneiden tehtävien yhteenveto
 
-function extractAsciiStrings(bytes: Uint8Array): string[] {
-  const values: string[] = [];
-  let current = "";
-  for (const code of bytes) {
-    if (code === 9 || (code >= 32 && code <= 126)) current += String.fromCharCode(code);
-    else {
-      if (current.trim().length >= 5) values.push(current.trim());
-      current = "";
-    }
-  }
-  if (current.trim().length >= 5) values.push(current.trim());
-  return values;
-}
+## Viikkoaikataulun periaate
 
-export async function inspectPlr(file: File): Promise<PlrReport> {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const isCompoundFile = OLE_SIGNATURE.every((value, index) => bytes[index] === value);
-  const allStrings = unique([...extractUtf16Strings(bytes), ...extractAsciiStrings(bytes)])
-    .filter((value) => value.length <= 160);
+Yleisaikataulu pysyy työmaan pääaikatauluna. Viikkoaikataulu on siitä erillinen, tarkempi suunnitelma.
 
-  const streamNames = allStrings.filter((value) =>
-    /^(Contents|ContentsRev\d+|Pluto project management|SummaryInformation|DocumentSummaryInformation)/i.test(value)
-  ).slice(0, 50);
+Kun viikkoaikataulu luodaan, ohjelma kopioi lähtöriveiksi työvaiheet, jotka osuvat valitulle viikolle. Tämän jälkeen työnjohtaja voi:
 
-  const probableVersionNames = allStrings.filter((value) =>
-    /ContentsRev\d+|Pluto project management ver\.|Tocoman|PlanMan/i.test(value)
-  ).slice(0, 30);
+- jakaa työn pienempiin tehtäviin
+- lisätä viikon konkreettisen tavoitteen
+- nimetä vastuuhenkilön
+- merkitä esteet
+- lisätä tehtäviä, joita yleisaikataulussa ei ole
 
-  const textSamples = allStrings.filter((value) =>
-    /[A-Za-zÅÄÖåäö]{4}/.test(value) &&
-    !/Microsoft|SummaryInformation|ContentsRev/i.test(value)
-  ).slice(0, 120);
+Muutokset viikkoaikataulussa eivät muuta yleisaikataulun rakennetta.
 
-  return {
-    fileName: file.name,
-    fileSize: file.size,
-    isCompoundFile,
-    streamNames: unique(streamNames),
-    textSamples: unique(textSamples),
-    probableVersionNames: unique(probableVersionNames),
-    notes: [
-      isCompoundFile
-        ? "Tiedosto tunnistettiin Microsoft Compound Document / OLE -säiliöksi."
-        : "Tiedosto ei vastaa tunnettua OLE-säiliön allekirjoitusta.",
-      "Tämä vaihe vain analysoi tiedoston rakennetta eikä muuta alkuperäistä tiedostoa.",
-      "Varsinainen tehtävä-, päivämäärä- ja hierarkiatuonti rakennetaan tunnistettujen tietovirtojen perusteella."
-    ]
-  };
-}
+## Seuraavat pääkohteet
+
+1. projektien palvelintallennus ja kirjautuminen
+2. viikkoaikataulun kopiointi seuraavalle viikolle
+3. keskeneräisten viikkotehtävien automaattinen siirto
+4. seurantatulosteiden versioarkisto
+5. Tocoman-tuonnin ensimmäinen esikatselu

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addCalendarDays, addWorkdays, daysBetween, formatDate, isoWeek, mondayOfWeek, monthName, parseDate, workdayEnd } from "../lib/calendar";
 import { initialWorkspace } from "../lib/sample";
-import type { ProjectState, Task, TaskKind, WorkspaceState } from "../lib/types";
+import type { ProjectState, Task, TaskKind, WeeklyPlan, WeeklyPlanItem, WeeklyPlanStatus, WorkspaceState } from "../lib/types";
 import { inspectPlr, type PlrReport } from "../lib/plrInspector";
 import { comparePlrFiles, rangeLabel, type PlrComparison } from "../lib/plrCompare";
 
@@ -76,7 +76,7 @@ function emptyProject(): ProjectState {
     id: crypto.randomUUID(), projectName: "Uusi projekti", scheduleName: "Yleisaikataulu",
     projectNumber: "", client: "", updatedDate: today, statusDate: today, paperSize: "A4",
     calendar: { workdays: [1,2,3,4,5], holidays: [], shutdownPeriods: [] },
-    baseline: null, snapshots: [],
+    baseline: null, snapshots: [], weeklyPlans: [],
     tasks: [{ id: crypto.randomUUID(), name: "Ensimmäinen työvaihe", level: 0, start: today, duration: 5, progress: 0, kind: "task" }]
   };
 }
@@ -95,6 +95,11 @@ export function ScheduleApp() {
   const [printOpen, setPrintOpen] = useState(false);
   const [undoStack, setUndoStack] = useState<WorkspaceState[]>([]);
   const [redoStack, setRedoStack] = useState<WorkspaceState[]>([]);
+  const [viewMode, setViewMode] = useState<"general" | "weekly">("general");
+  const [weeklyStart, setWeeklyStart] = useState(mondayOfWeek(initialWorkspace.projects[0].statusDate));
+  const [searchText, setSearchText] = useState("");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [collapsedIds, setCollapsedIds] = useState<string[]>([]);
   const [savedAt, setSavedAt] = useState("");
   const [calendarStart, setCalendarStart] = useState(mondayOfWeek("2026-07-06"));
   const importRef = useRef<HTMLInputElement>(null);
@@ -131,7 +136,13 @@ export function ScheduleApp() {
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      try { setWorkspace(JSON.parse(stored) as WorkspaceState); } catch {}
+      try {
+        const parsed = JSON.parse(stored) as WorkspaceState;
+        setWorkspace({
+          ...parsed,
+          projects: parsed.projects.map((item) => ({ ...item, weeklyPlans: item.weeklyPlans ?? [] }))
+        });
+      } catch {}
     }
   }, []);
 
@@ -148,6 +159,30 @@ export function ScheduleApp() {
   const selectedIndex = tasks.findIndex((task) => task.id === selectedId);
   const selectedTask = tasks[selectedIndex];
   const { workdays, holidays } = project.calendar;
+
+  const locations = useMemo(
+    () => [...new Set(tasks.map((task) => task.location).filter((value): value is string => Boolean(value)))].sort(),
+    [tasks]
+  );
+
+  const hiddenByCollapse = (index: number): boolean => {
+    for (let parentIndex = index - 1; parentIndex >= 0; parentIndex -= 1) {
+      if (tasks[parentIndex].level < tasks[index].level) {
+        if (collapsedIds.includes(tasks[parentIndex].id)) return true;
+        if (tasks[parentIndex].level === 0) break;
+      }
+    }
+    return false;
+  };
+
+  const visibleTasks = useMemo(() => tasks.filter((task, index) => {
+    if (hiddenByCollapse(index)) return false;
+    if (locationFilter !== "all" && task.location !== locationFilter) return false;
+    const query = searchText.trim().toLocaleLowerCase("fi-FI");
+    if (!query) return true;
+    return [task.name, task.location ?? "", task.responsible ?? ""]
+      .some((value) => value.toLocaleLowerCase("fi-FI").includes(query));
+  }), [tasks, collapsedIds, locationFilter, searchText]);
   const printSettings = workspace.printSettings ?? {
     showWbs: true, showDuration: true, showStart: true, showEnd: true,
     showProgress: true, showLegend: true, fitToOnePage: true,
@@ -193,7 +228,7 @@ export function ScheduleApp() {
     const index = Math.max(0, project.tasks.findIndex((task) => task.id === selectedId));
     const previous = project.tasks[index];
     const id = crypto.randomUUID();
-    const task: Task = { id, name: kind === "milestone" ? "Uusi välitavoite" : "Uusi työvaihe", level: previous?.level ?? 0, start: previous?.start ?? project.updatedDate, duration: kind === "milestone" ? 1 : 5, progress: 0, kind };
+    const task: Task = { id, name: kind === "milestone" ? "Uusi välitavoite" : "Uusi työvaihe", level: previous?.level ?? 0, start: previous?.start ?? project.updatedDate, duration: kind === "milestone" ? 1 : 5, progress: 0, kind, location: previous?.location ?? "" };
     const next = [...project.tasks];
     next.splice(index + 1, 0, task);
     setSelectedId(id);
@@ -271,6 +306,86 @@ export function ScheduleApp() {
     } catch { window.alert("Työtilatiedostoa ei voitu avata."); }
   };
 
+  const weeklyPlans = project.weeklyPlans ?? [];
+  const activeWeeklyPlan = weeklyPlans.find((plan) => plan.weekStart === weeklyStart);
+
+  const weekDays = useMemo(
+    () => Array.from({ length: 5 }, (_, index) => addCalendarDays(weeklyStart, index)),
+    [weeklyStart]
+  );
+
+  const taskIntersectsWeek = (task: Task) => {
+    const taskEnd = workdayEnd(task.start, task.duration, workdays, holidays);
+    const weekEnd = addCalendarDays(weeklyStart, 6);
+    return task.start <= weekEnd && taskEnd >= weeklyStart;
+  };
+
+  const createWeeklyPlan = () => {
+    const sourceTasks = tasks.filter((task) => task.kind !== "summary" && taskIntersectsWeek(task));
+    const items: WeeklyPlanItem[] = sourceTasks.map((task) => ({
+      id: crypto.randomUUID(),
+      sourceTaskId: task.id,
+      day: task.start < weeklyStart ? weeklyStart : task.start,
+      taskName: task.name,
+      location: task.location,
+      responsible: task.responsible,
+      target: task.progress > 0 ? `Jatka, nykyinen valmius ${task.progress} %` : "Aloita suunnitelman mukaisesti",
+      status: task.progress >= 100 ? "done" : task.progress > 0 ? "in-progress" : "planned",
+      note: task.note
+    }));
+
+    const plan: WeeklyPlan = {
+      id: crypto.randomUUID(),
+      weekStart: weeklyStart,
+      title: `Viikkoaikataulu vko ${isoWeek(parseDate(weeklyStart))}`,
+      createdAt: new Date().toISOString(),
+      items
+    };
+
+    updateProject({ weeklyPlans: [...weeklyPlans.filter((item) => item.weekStart !== weeklyStart), plan] });
+  };
+
+  const updateWeeklyPlan = (patch: Partial<WeeklyPlan>) => {
+    if (!activeWeeklyPlan) return;
+    updateProject({
+      weeklyPlans: weeklyPlans.map((plan) => plan.id === activeWeeklyPlan.id ? { ...plan, ...patch } : plan)
+    });
+  };
+
+  const updateWeeklyItem = (itemId: string, patch: Partial<WeeklyPlanItem>) => {
+    if (!activeWeeklyPlan) return;
+    updateWeeklyPlan({
+      items: activeWeeklyPlan.items.map((item) => item.id === itemId ? { ...item, ...patch } : item)
+    });
+  };
+
+  const addWeeklyItem = () => {
+    if (!activeWeeklyPlan) return;
+    updateWeeklyPlan({
+      items: [...activeWeeklyPlan.items, {
+        id: crypto.randomUUID(),
+        day: weeklyStart,
+        taskName: "Uusi viikon työtehtävä",
+        location: "",
+        responsible: "",
+        target: "",
+        status: "planned"
+      }]
+    });
+  };
+
+  const deleteWeeklyItem = (itemId: string) => {
+    if (!activeWeeklyPlan) return;
+    updateWeeklyPlan({ items: activeWeeklyPlan.items.filter((item) => item.id !== itemId) });
+  };
+
+  const statusLabel = (status: WeeklyPlanStatus) => ({
+    planned: "Suunniteltu",
+    "in-progress": "Käynnissä",
+    done: "Valmis",
+    blocked: "Estynyt"
+  }[status]);
+
   const startOffset = (start: string) => daysBetween(calendarStart, start) * PX_PER_DAY;
   const durationWidth = (task: Pick<Task, "start" | "duration">) => Math.max(PX_PER_DAY, (daysBetween(task.start, workdayEnd(task.start, task.duration, workdays, holidays)) + 1) * PX_PER_DAY);
   const actualWidth = (task: Task) => {
@@ -285,18 +400,20 @@ export function ScheduleApp() {
         <div className="brand-block"><strong>Aikataulu</strong><span>{project.projectNumber ? `${project.projectNumber} · ` : ""}{project.projectName}</span></div>
         <div className="toolbar">
           <button onClick={() => setProjectsOpen(true)}>Projektit</button>
+          <button className={viewMode === "general" ? "active-view" : ""} onClick={() => setViewMode("general")}>Yleisaikataulu</button>
+          <button className={viewMode === "weekly" ? "active-view" : ""} onClick={() => setViewMode("weekly")}>Viikkoaikataulu</button>
           <button onClick={undo} disabled={!undoStack.length}>Kumoa</button>
           <button onClick={redo} disabled={!redoStack.length}>Tee uudelleen</button>
-          <button onClick={() => addTask()}>+ Tehtävä</button>
-          <button onClick={() => addTask("milestone")}>◇ Välitavoite</button>
-          <button onClick={duplicateTask}>Kopioi</button><button onClick={deleteTask}>Poista</button>
-          <button onClick={() => changeIndent(1)}>Sisennä</button><button onClick={() => changeIndent(-1)}>Ulonna</button>
-          <button onClick={() => moveRow(-1)}>↑</button><button onClick={() => moveRow(1)}>↓</button>
-          <button onClick={saveBaseline}>Tallenna tavoite</button>
-          <button className="primary" onClick={() => setTrackingOpen(true)}>Toteumaseuranta</button>
-          <button onClick={() => setSnapshotsOpen(true)}>Historia</button>
-          <button onClick={() => setCalendarOpen(true)}>Kalenteri</button>
-          <button onClick={() => setPlrOpen(true)}>Tocoman-tuonti</button>
+          {viewMode === "general" && (<button onClick={() => addTask()}>+ Tehtävä</button>)}
+          {viewMode === "general" && (<button onClick={() => addTask("milestone")}>◇ Välitavoite</button>)}
+          {viewMode === "general" && (<button onClick={duplicateTask}>Kopioi</button>)}{viewMode === "general" && (<button onClick={deleteTask}>Poista</button>)}
+          {viewMode === "general" && (<button onClick={() => changeIndent(1)}>Sisennä</button>)}{viewMode === "general" && (<button onClick={() => changeIndent(-1)}>Ulonna</button>)}
+          {viewMode === "general" && (<button onClick={() => moveRow(-1)}>↑</button>)}{viewMode === "general" && (<button onClick={() => moveRow(1)}>↓</button>)}
+          {viewMode === "general" && (<button onClick={saveBaseline}>Tallenna tavoite</button>)}
+          {viewMode === "general" && (<button className="primary" onClick={() => setTrackingOpen(true)}>Toteumaseuranta</button>)}
+          {viewMode === "general" && (<button onClick={() => setSnapshotsOpen(true)}>Historia</button>)}
+          {viewMode === "general" && (<button onClick={() => setCalendarOpen(true)}>Kalenteri</button>)}
+          {viewMode === "general" && (<button onClick={() => setPlrOpen(true)}>Tocoman-tuonti</button>)}
           <button onClick={() => setPrintOpen(true)}>Tulostusasetukset</button>
           <button onClick={() => window.print()}>Tulosta / PDF</button>
         </div>
@@ -313,37 +430,66 @@ export function ScheduleApp() {
         <span className="save-state">Tallennettu {savedAt}</span>
       </section>
 
-      <section className="print-heading"><div>{project.projectName}</div><div>{project.scheduleName}</div></section>
-      {printSettings.showLegend && <section className="schedule-legend">
+      {viewMode === "weekly" && <section className="weekly-toolbar no-print">
+        <button onClick={() => setWeeklyStart(addCalendarDays(weeklyStart, -7))}>← Edellinen viikko</button>
+        <label>Viikon maanantai<input type="date" value={weeklyStart} onChange={(e) => setWeeklyStart(mondayOfWeek(e.target.value))} /></label>
+        <button onClick={() => setWeeklyStart(mondayOfWeek(project.statusDate))}>Seurantahetken viikko</button>
+        <button onClick={() => setWeeklyStart(addCalendarDays(weeklyStart, 7))}>Seuraava viikko →</button>
+        {!activeWeeklyPlan && <button className="primary" onClick={createWeeklyPlan}>Luo viikkoaikataulu yleisaikataulusta</button>}
+        {activeWeeklyPlan && <button onClick={addWeeklyItem}>+ Lisää viikon tehtävä</button>}
+        <span>vko {isoWeek(parseDate(weeklyStart))}</span>
+      </section>}
+
+      {viewMode === "general" && <section className="filterbar no-print">
+        <label>Haku<input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="Työvaihe, rakennus tai vastuuhenkilö" /></label>
+        <label>Rakennus / alue<select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
+          <option value="all">Kaikki</option>
+          {locations.map((location) => <option key={location} value={location}>{location}</option>)}
+        </select></label>
+        <button onClick={() => { setSearchText(""); setLocationFilter("all"); }}>Tyhjennä rajaus</button>
+        <span>{visibleTasks.length} / {tasks.length} riviä näkyvissä</span>
+      </section>}
+
+      <section className={`print-heading ${viewMode === "weekly" ? "weekly-print-heading" : ""}`}><div>{project.projectName}</div><div>{viewMode === "weekly" ? `Viikkoaikataulu vko ${isoWeek(parseDate(weeklyStart))}` : project.scheduleName}</div></section>
+      {viewMode === "general" && printSettings.showLegend && <section className="schedule-legend">
         <span><i className="legend-baseline" />Tavoite</span>
         <span><i className="legend-plan" />Suunnitelma / jäljellä</span>
         <span><i className="legend-actual" />Toteutuma</span>
         <span><i className="legend-status" />Seurantahetki</span>
       </section>}
 
-      <main className={`schedule-grid ${printSettings.fitToOnePage ? "fit-one-page" : ""} ${printSettings.pageMode === "multi-page" ? "multi-page-print" : ""} ${printSettings.repeatHeader ? "repeat-print-header" : ""}`}>
+{viewMode === "general" &&       <main className={`schedule-grid ${printSettings.fitToOnePage ? "fit-one-page" : ""} ${printSettings.pageMode === "multi-page" ? "multi-page-print" : ""} ${printSettings.repeatHeader ? "repeat-print-header" : ""}`}>
         <div className="table-pane">
-          <table><thead><tr><th className="select-column"></th>{printSettings.showWbs && <th className="wbs-column">Hier</th>}<th>Työvaihe</th>{printSettings.showDuration && <th className="duration-column">Kesto</th>}{printSettings.showStart && <th className="date-column">Alku</th>}{printSettings.showEnd && <th className="date-column">Loppu</th>}{printSettings.showProgress && <th className="progress-column">Valmis %</th>}</tr></thead>
-            <tbody>{tasks.map((task, index) => (
+          <table><thead><tr><th className="select-column"></th>{printSettings.showWbs && <th className="wbs-column">Hier</th>}<th>Työvaihe</th><th className="location-column">Rakennus / alue</th><th className="responsible-column">Vastuu</th>{printSettings.showDuration && <th className="duration-column">Kesto</th>}{printSettings.showStart && <th className="date-column">Alku</th>}{printSettings.showEnd && <th className="date-column">Loppu</th>}{printSettings.showProgress && <th className="progress-column">Valmis %</th>}</tr></thead>
+            <tbody>{visibleTasks.map((task) => {
+              const index = tasks.findIndex((item) => item.id === task.id);
+              return (
               <tr key={task.id} className={`${task.kind === "summary" ? "summary-row" : ""} ${task.kind === "milestone" ? "milestone-row" : ""} ${task.id === selectedId ? "selected-row" : ""}`} onClick={() => setSelectedId(task.id)}>
                 <td><input type="radio" readOnly checked={task.id === selectedId} /></td>{printSettings.showWbs && <td>{buildWbs(tasks, index)}</td>}
-                <td><input className="task-name-input" style={{ paddingLeft: 8 + task.level * 18 }} value={task.name} onChange={(e) => updateTask(task.id, { name: e.target.value })} /></td>
+                <td className="task-name-cell">
+                  {task.kind === "summary" && <button className="collapse-button" onClick={(event) => { event.stopPropagation(); setCollapsedIds((items) => items.includes(task.id) ? items.filter((id) => id !== task.id) : [...items, task.id]); }}>{collapsedIds.includes(task.id) ? "▸" : "▾"}</button>}
+                  <input className="task-name-input" style={{ paddingLeft: 8 + task.level * 18 }} value={task.name} onChange={(e) => updateTask(task.id, { name: e.target.value })} />
+                </td>
+                <td><input value={task.location ?? ""} onChange={(e) => updateTask(task.id, { location: e.target.value })} /></td>
+                <td><input value={task.responsible ?? ""} onChange={(e) => updateTask(task.id, { responsible: e.target.value })} /></td>
                 {printSettings.showDuration && <td><input type="number" min={1} disabled={task.kind === "summary"} value={task.duration} onChange={(e) => updateTask(task.id, { duration: Math.max(1, Number(e.target.value)) })} /></td>}
                 {printSettings.showStart && <td><input type="date" disabled={task.kind === "summary"} value={task.start} onChange={(e) => updateTask(task.id, { start: e.target.value })} /></td>}
                 {printSettings.showEnd && <td><input type="date" readOnly value={workdayEnd(task.start, task.duration, workdays, holidays)} /></td>}
                 {printSettings.showProgress && <td><input type="number" min={0} max={100} disabled={task.kind === "summary"} value={task.progress} onChange={(e) => updateTask(task.id, { progress: clamp(Number(e.target.value), 0, 100) })} /></td>}
               </tr>
-            ))}</tbody>
+              );
+            })}</tbody>
           </table>
         </div>
         <div className="gantt-pane">
           <div className="calendar-header">{calendarWeeks.map(({ week, month }, index) => <div className="calendar-week" key={`${week}-${index}`}><span>{month}</span><strong>vko {week}</strong></div>)}</div>
-          <div className="gantt-body" style={{ height: tasks.length * ROW_HEIGHT }}>
+          <div className="gantt-body" style={{ height: visibleTasks.length * ROW_HEIGHT }}>
             <div className="status-line" style={{ left: startOffset(project.statusDate) }}><span>{project.statusDate}</span></div>
             {calendarWeeks.map(({ date }, index) => date.getDate() <= 7 ? <div className="month-separator" key={`month-${index}`} style={{ left: index * 7 * PX_PER_DAY }} /> : null)}
-            {tasks.map((task, index) => {
+            {visibleTasks.map((task, visibleIndex) => {
+              const index = tasks.findIndex((item) => item.id === task.id);
               const left = startOffset(task.start), width = durationWidth(task), baseline = project.baseline?.[task.id];
-              return <div className="gantt-row" style={{ top: index * ROW_HEIGHT }} key={task.id}>
+              return <div className="gantt-row" style={{ top: visibleIndex * ROW_HEIGHT }} key={task.id}>
                 {baseline && <div className="baseline-bar" style={{ left: startOffset(baseline.start), width: durationWidth({ start: baseline.start, duration: baseline.duration }) }} />}
                 {task.kind === "milestone" ? <div className="milestone" style={{ left }}>◆</div> :
                   <div
@@ -384,13 +530,54 @@ export function ScheduleApp() {
             })}
           </div>
         </div>
-      </main>
+      </main>}
 
-      <footer className="print-footer"><span>Päivitetty: {project.updatedDate}</span><span>Seurantahetki: {project.statusDate}</span></footer>
+      {viewMode === "weekly" && <main className="weekly-plan-view">
+        {!activeWeeklyPlan ? (
+          <section className="weekly-empty">
+            <h2>Viikkoaikataulua ei ole vielä luotu</h2>
+            <p>Luo viikkoaikataulu yleisaikataulun niistä työvaiheista, jotka osuvat valitulle viikolle. Rivejä voidaan sen jälkeen tarkentaa vapaasti.</p>
+            <button className="primary" onClick={createWeeklyPlan}>Luo viikkoaikataulu vko {isoWeek(parseDate(weeklyStart))}</button>
+          </section>
+        ) : (
+          <>
+            <section className="weekly-plan-header">
+              <input value={activeWeeklyPlan.title} onChange={(e) => updateWeeklyPlan({ title: e.target.value })} />
+              <span>{weeklyStart} – {addCalendarDays(weeklyStart, 6)}</span>
+            </section>
+            <table className="weekly-table">
+              <thead><tr><th>Päivä</th><th>Työtehtävä</th><th>Rakennus / alue</th><th>Vastuu</th><th>Viikon tavoite</th><th>Tila</th><th>Huomautus</th><th className="no-print"></th></tr></thead>
+              <tbody>
+                {activeWeeklyPlan.items.map((item) => <tr key={item.id} className={`weekly-status-${item.status}`}>
+                  <td><select value={item.day} onChange={(e) => updateWeeklyItem(item.id, { day: e.target.value })}>
+                    {weekDays.map((day) => <option key={day} value={day}>{parseDate(day).toLocaleDateString("fi-FI", { weekday: "short", day: "numeric", month: "numeric" })}</option>)}
+                  </select></td>
+                  <td><textarea value={item.taskName} onChange={(e) => updateWeeklyItem(item.id, { taskName: e.target.value })} /></td>
+                  <td><input value={item.location ?? ""} onChange={(e) => updateWeeklyItem(item.id, { location: e.target.value })} /></td>
+                  <td><input value={item.responsible ?? ""} onChange={(e) => updateWeeklyItem(item.id, { responsible: e.target.value })} /></td>
+                  <td><textarea value={item.target ?? ""} onChange={(e) => updateWeeklyItem(item.id, { target: e.target.value })} /></td>
+                  <td><select value={item.status} onChange={(e) => updateWeeklyItem(item.id, { status: e.target.value as WeeklyPlanStatus })}>
+                    {(["planned","in-progress","done","blocked"] as WeeklyPlanStatus[]).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
+                  </select></td>
+                  <td><textarea value={item.note ?? ""} onChange={(e) => updateWeeklyItem(item.id, { note: e.target.value })} /></td>
+                  <td className="no-print"><button className="danger compact-button" onClick={() => deleteWeeklyItem(item.id)}>Poista</button></td>
+                </tr>)}
+              </tbody>
+            </table>
+            <section className="weekly-summary">
+              <span>Tehtäviä {activeWeeklyPlan.items.length}</span>
+              <span>Valmiita {activeWeeklyPlan.items.filter((item) => item.status === "done").length}</span>
+              <span>Estyneitä {activeWeeklyPlan.items.filter((item) => item.status === "blocked").length}</span>
+            </section>
+          </>
+        )}
+      </main>}
+
+      <footer className="print-footer"><span>Päivitetty: {project.updatedDate}</span><span>{viewMode === "weekly" ? `Viikko ${isoWeek(parseDate(weeklyStart))}` : `Seurantahetki: ${project.statusDate}`}</span></footer>
 
       {trackingOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer"><header><div><strong>Toteumaseuranta</strong><span>Seurantahetki {project.statusDate}</span></div><button onClick={() => setTrackingOpen(false)}>×</button></header>
         <div className="tracking-actions"><button className="primary" onClick={saveSnapshot}>Tallenna seurantatilanne</button><span>Tilanteita {project.snapshots.length}</span></div>
-        <div className="tracking-list">{tasks.filter((task) => task.kind !== "summary").map((task) => <article key={task.id}><strong>{task.name}</strong>
+        <div className="tracking-list">{visibleTasks.filter((task) => task.kind !== "summary").map((task) => <article key={task.id}><strong>{task.name}</strong>
           <label>Valmiusaste<input type="range" min={0} max={100} value={task.progress} onChange={(e) => updateTask(task.id, { progress: Number(e.target.value) })} /><output>{task.progress}%</output></label>
           <label>Toteutunut alku<input type="date" value={task.actualStart ?? ""} onChange={(e) => updateTask(task.id, { actualStart: e.target.value })} /></label>
           <label>Toteutunut loppu<input type="date" value={task.actualEnd ?? ""} onChange={(e) => updateTask(task.id, { actualEnd: e.target.value, progress: e.target.value ? 100 : task.progress })} /></label>
@@ -442,7 +629,7 @@ export function ScheduleApp() {
           <div className="print-preview-card">
             <strong>{project.paperSize} vaaka · {printSettings.pageMode === "one-page" ? "1 sivu" : "monisivu"}</strong>
             <span>{project.projectName}</span>
-            <span>{tasks.length} riviä · {visibleWeeks} viikkoa</span>
+            <span>{visibleTasks.length} riviä · {visibleWeeks} viikkoa</span>
             <span>{printSettings.rangeStart} – {printSettings.rangeEnd}</span>
           </div>
           <button className="primary" onClick={() => { applyPrintRange(); setPrintOpen(false); setTimeout(() => window.print(), 80); }}>Avaa tulostus / PDF</button>

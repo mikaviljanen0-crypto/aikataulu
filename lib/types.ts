@@ -16,6 +16,8 @@ export interface Task {
   progress: number;
   kind: TaskKind;
   color?: string;
+  location?: string;
+  responsible?: string;
   actualStart?: string;
   actualEnd?: string;
   forecastEnd?: string;
@@ -34,6 +36,28 @@ export interface TrackingSnapshot {
   tasks: Array<Pick<Task, "id" | "progress" | "actualStart" | "actualEnd" | "forecastEnd" | "note">>;
 }
 
+export type WeeklyPlanStatus = "planned" | "in-progress" | "done" | "blocked";
+
+export interface WeeklyPlanItem {
+  id: string;
+  sourceTaskId?: string;
+  day: string;
+  taskName: string;
+  location?: string;
+  responsible?: string;
+  target?: string;
+  status: WeeklyPlanStatus;
+  note?: string;
+}
+
+export interface WeeklyPlan {
+  id: string;
+  weekStart: string;
+  title: string;
+  createdAt: string;
+  items: WeeklyPlanItem[];
+}
+
 export interface ProjectState {
   id: string;
   projectName: string;
@@ -47,6 +71,7 @@ export interface ProjectState {
   tasks: Task[];
   baseline: Record<string, BaselineTask> | null;
   snapshots: TrackingSnapshot[];
+  weeklyPlans: WeeklyPlan[];
 }
 
 export type PrintPageMode = "one-page" | "multi-page";
