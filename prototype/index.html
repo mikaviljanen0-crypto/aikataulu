@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aikataulu – prototyyppi</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div><strong>Aikataulu</strong><span class="muted"> / As Oy Kissankello</span></div>
+  <div class="actions">
+    <button id="add">+ Lisää tehtävä</button>
+    <button id="indent">Sisennä</button>
+    <button id="outdent">Ulonna</button>
+    <button id="baseline">Tallenna tavoite</button>
+    <button id="tracking">Seuranta</button>
+    <select id="paper"><option>A4 vaaka</option><option>A3 vaaka</option></select>
+    <button id="print">Tulosta / PDF</button>
+  </div>
+</header>
+<div class="subbar">
+  <label>Seurantahetki <input id="statusDate" type="date" value="2026-08-31"></label>
+  <label>Näkymä <select id="zoom"><option value="week">Viikot</option><option value="month">Kuukaudet</option></select></label>
+  <span id="saveState">Tallennettu paikallisesti</span>
+</div>
+<main>
+  <section class="grid-wrap">
+    <table id="taskTable">
+      <thead><tr><th class="sel"></th><th>Hier</th><th>Työvaihe</th><th>Kesto</th><th>Alku</th><th>Valmis %</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="gantt" class="gantt">
+      <div id="calendar" class="calendar"></div>
+      <div id="rows" class="gantt-rows"></div>
+      <div id="statusLine" class="status-line"></div>
+    </div>
+  </section>
+</main>
+<div id="trackingPanel" class="panel hidden">
+  <div class="panel-head"><strong>Toteumaseuranta</strong><button id="closePanel">×</button></div>
+  <div id="trackingContent"></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
