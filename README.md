@@ -1,81 +1,50 @@
-export interface PlrReport {
-  fileName: string;
-  fileSize: number;
-  isCompoundFile: boolean;
-  streamNames: string[];
-  textSamples: string[];
-  probableVersionNames: string[];
-  notes: string[];
-}
+# Aikatauluohjelmisto
 
-const OLE_SIGNATURE = [0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1];
+Rakennusalan selainpohjainen jana- ja viikkoaikatauluohjelmisto.
 
-function unique(values: string[]): string[] {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
+## Tavoite
 
-function extractUtf16Strings(bytes: Uint8Array): string[] {
-  const values: string[] = [];
-  let current = "";
-  for (let i = 0; i + 1 < bytes.length; i += 2) {
-    const code = bytes[i] | (bytes[i + 1] << 8);
-    const allowed = code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126) || (code >= 160 && code <= 591);
-    if (allowed) current += String.fromCharCode(code);
-    else {
-      if (current.trim().length >= 4) values.push(current.trim());
-      current = "";
-    }
-  }
-  if (current.trim().length >= 4) values.push(current.trim());
-  return values;
-}
+Ohjelmiston tavoitteena on korvata Tocoman Aikataulu meidän käytössämme ja tarjota selkeä työväline:
 
-function extractAsciiStrings(bytes: Uint8Array): string[] {
-  const values: string[] = [];
-  let current = "";
-  for (const code of bytes) {
-    if (code === 9 || (code >= 32 && code <= 126)) current += String.fromCharCode(code);
-    else {
-      if (current.trim().length >= 5) values.push(current.trim());
-      current = "";
-    }
-  }
-  if (current.trim().length >= 5) values.push(current.trim());
-  return values;
-}
+- yleisaikataulujen laatimiseen
+- toteutumaseurantaan
+- työmaakokousten seurantatulosteisiin
+- viikkoaikatauluihin
+- aikatauluversioiden hallintaan
+- vanhojen Tocoman `.plr` -projektien tuontiin
 
-export async function inspectPlr(file: File): Promise<PlrReport> {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const isCompoundFile = OLE_SIGNATURE.every((value, index) => bytes[index] === value);
-  const allStrings = unique([...extractUtf16Strings(bytes), ...extractAsciiStrings(bytes)])
-    .filter((value) => value.length <= 160);
+## Nykyinen kehitysvaihe
 
-  const streamNames = allStrings.filter((value) =>
-    /^(Contents|ContentsRev\d+|Pluto project management|SummaryInformation|DocumentSummaryInformation)/i.test(value)
-  ).slice(0, 50);
+Versio: v1.5
 
-  const probableVersionNames = allStrings.filter((value) =>
-    /ContentsRev\d+|Pluto project management ver\.|Tocoman|PlanMan/i.test(value)
-  ).slice(0, 30);
+Tällä hetkellä toteutettuna tai prototyyppiasteella:
 
-  const textSamples = allStrings.filter((value) =>
-    /[A-Za-zÅÄÖåäö]{4}/.test(value) &&
-    !/Microsoft|SummaryInformation|ContentsRev/i.test(value)
-  ).slice(0, 120);
+- muokattava Gantt-jana
+- tehtävähierarkia
+- summatehtävät
+- tavoiteaikataulu
+- toteutumaseuranta
+- seurantahistoria
+- aikatauluversiot ja versiovertailu
+- yksinkertaiset riippuvuudet
+- viikkoaikataulu
+- A4- ja A3-tulostus
+- projektien arkistointi
+- käyttäjäroolien prototyyppi
+- Tocoman `.plr` -analyysi
 
-  return {
-    fileName: file.name,
-    fileSize: file.size,
-    isCompoundFile,
-    streamNames: unique(streamNames),
-    textSamples: unique(textSamples),
-    probableVersionNames: unique(probableVersionNames),
-    notes: [
-      isCompoundFile
-        ? "Tiedosto tunnistettiin Microsoft Compound Document / OLE -säiliöksi."
-        : "Tiedosto ei vastaa tunnettua OLE-säiliön allekirjoitusta.",
-      "Tämä vaihe vain analysoi tiedoston rakennetta eikä muuta alkuperäistä tiedostoa.",
-      "Varsinainen tehtävä-, päivämäärä- ja hierarkiatuonti rakennetaan tunnistettujen tietovirtojen perusteella."
-    ]
-  };
-}
+## Teknologia
+
+- Next.js
+- React
+- TypeScript
+- selainpohjainen käyttöliittymä
+- myöhemmin tietokanta ja kirjautuminen
+
+## Kehityskäynnistys
+
+Kun kehitysympäristö otetaan käyttöön:
+
+```bash
+npm install
+npm run dev
