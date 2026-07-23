@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addCalendarDays, addWorkdays, daysBetween, formatDate, isoWeek, mondayOfWeek, monthName, parseDate, workdayEnd } from "../lib/calendar";
 import { initialWorkspace } from "../lib/sample";
-import type { ProjectState, Task, TaskKind, WeeklyPlan, WeeklyPlanItem, WeeklyPlanStatus, WorkspaceState } from "../lib/types";
+import type { ProjectState, ScheduleVersion, Task, TaskKind, WeeklyPlan, WeeklyPlanItem, WeeklyPlanStatus, WorkspaceState } from "../lib/types";
 import { inspectPlr, type PlrReport } from "../lib/plrInspector";
 import { comparePlrFiles, rangeLabel, type PlrComparison } from "../lib/plrCompare";
 
@@ -76,7 +76,7 @@ function emptyProject(): ProjectState {
     id: crypto.randomUUID(), projectName: "Uusi projekti", scheduleName: "Yleisaikataulu",
     projectNumber: "", client: "", updatedDate: today, statusDate: today, paperSize: "A4",
     calendar: { workdays: [1,2,3,4,5], holidays: [], shutdownPeriods: [] },
-    baseline: null, snapshots: [], weeklyPlans: [],
+    baseline: null, snapshots: [], scheduleVersions: [], weeklyPlans: [],
     tasks: [{ id: crypto.randomUUID(), name: "Ensimmäinen työvaihe", level: 0, start: today, duration: 5, progress: 0, kind: "task" }]
   };
 }
@@ -101,6 +101,9 @@ export function ScheduleApp() {
   const [locationFilter, setLocationFilter] = useState("all");
   const [collapsedIds, setCollapsedIds] = useState<string[]>([]);
   const [dependencyMessage, setDependencyMessage] = useState("");
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [versionTitle, setVersionTitle] = useState("");
+  const [versionDescription, setVersionDescription] = useState("");
   const [savedAt, setSavedAt] = useState("");
   const [calendarStart, setCalendarStart] = useState(mondayOfWeek("2026-07-06"));
   const importRef = useRef<HTMLInputElement>(null);
@@ -141,7 +144,11 @@ export function ScheduleApp() {
         const parsed = JSON.parse(stored) as WorkspaceState;
         setWorkspace({
           ...parsed,
-          projects: parsed.projects.map((item) => ({ ...item, weeklyPlans: item.weeklyPlans ?? [] }))
+          projects: parsed.projects.map((item) => ({
+            ...item,
+            weeklyPlans: item.weeklyPlans ?? [],
+            scheduleVersions: item.scheduleVersions ?? []
+          }))
         });
       } catch {}
     }
@@ -349,6 +356,40 @@ export function ScheduleApp() {
     window.setTimeout(() => setDependencyMessage(""), 5000);
   };
 
+  const scheduleVersions = project.scheduleVersions ?? [];
+
+  const saveScheduleVersion = () => {
+    const title = versionTitle.trim() || `Versio ${new Date().toLocaleDateString("fi-FI")}`;
+    const version: ScheduleVersion = {
+      id: crypto.randomUUID(),
+      title,
+      description: versionDescription.trim() || undefined,
+      createdAt: new Date().toISOString(),
+      tasks: project.tasks.map((task) => ({ ...task })),
+      baseline: project.baseline ? JSON.parse(JSON.stringify(project.baseline)) : null
+    };
+    updateProject({ scheduleVersions: [...scheduleVersions, version] });
+    setVersionTitle("");
+    setVersionDescription("");
+  };
+
+  const restoreScheduleVersion = (versionId: string) => {
+    const version = scheduleVersions.find((item) => item.id === versionId);
+    if (!version || !window.confirm(`Palautetaanko aikatauluversio "${version.title}"?`)) return;
+    updateProject({
+      tasks: version.tasks.map((task) => ({ ...task })),
+      baseline: version.baseline ? JSON.parse(JSON.stringify(version.baseline)) : null
+    });
+    setSelectedId(version.tasks[0]?.id ?? "");
+    setVersionsOpen(false);
+  };
+
+  const deleteScheduleVersion = (versionId: string) => {
+    const version = scheduleVersions.find((item) => item.id === versionId);
+    if (!version || !window.confirm(`Poistetaanko versio "${version.title}"?`)) return;
+    updateProject({ scheduleVersions: scheduleVersions.filter((item) => item.id !== versionId) });
+  };
+
   const weeklyPlans = project.weeklyPlans ?? [];
   const activeWeeklyPlan = weeklyPlans.find((plan) => plan.weekStart === weeklyStart);
 
@@ -485,6 +526,26 @@ export function ScheduleApp() {
     blocked: "Estynyt"
   }[status]);
 
+  const dependencyLines = visibleTasks.flatMap((task, targetVisibleIndex) => {
+    if (!task.predecessorId) return [];
+    const predecessorVisibleIndex = visibleTasks.findIndex((item) => item.id === task.predecessorId);
+    const predecessor = visibleTasks[predecessorVisibleIndex];
+    if (!predecessor || predecessorVisibleIndex < 0) return [];
+
+    const predecessorEndX = startOffset(workdayEnd(predecessor.start, predecessor.duration, workdays, holidays)) + PX_PER_DAY;
+    const targetStartX = startOffset(task.start);
+    const predecessorY = predecessorVisibleIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+    const targetY = targetVisibleIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+    const bendX = Math.max(predecessorEndX + 10, targetStartX - 14);
+
+    return [{
+      id: `${predecessor.id}-${task.id}`,
+      path: `M ${predecessorEndX} ${predecessorY} H ${bendX} V ${targetY} H ${targetStartX - 4}`,
+      arrowX: targetStartX - 4,
+      arrowY: targetY
+    }];
+  });
+
   const startOffset = (start: string) => daysBetween(calendarStart, start) * PX_PER_DAY;
   const durationWidth = (task: Pick<Task, "start" | "duration">) => Math.max(PX_PER_DAY, (daysBetween(task.start, workdayEnd(task.start, task.duration, workdays, holidays)) + 1) * PX_PER_DAY);
   const actualWidth = (task: Task) => {
@@ -511,7 +572,8 @@ export function ScheduleApp() {
           {viewMode === "general" && (<button onClick={saveBaseline}>Tallenna tavoite</button>)}
           {viewMode === "general" && (<button onClick={scheduleDependencies}>Laske riippuvuudet</button>)}
           {viewMode === "general" && (<button className="primary" onClick={() => setTrackingOpen(true)}>Toteumaseuranta</button>)}
-          {viewMode === "general" && (<button onClick={() => setSnapshotsOpen(true)}>Historia</button>)}
+          {viewMode === "general" && (<button onClick={() => setSnapshotsOpen(true)}>Seurantahistoria</button>)}
+          {viewMode === "general" && (<button onClick={() => setVersionsOpen(true)}>Aikatauluversiot</button>)}
           {viewMode === "general" && (<button onClick={() => setCalendarOpen(true)}>Kalenteri</button>)}
           {viewMode === "general" && (<button onClick={() => setPlrOpen(true)}>Tocoman-tuonti</button>)}
           <button onClick={() => setPrintOpen(true)}>Tulostusasetukset</button>
@@ -596,6 +658,14 @@ export function ScheduleApp() {
           <div className="gantt-body" style={{ height: visibleTasks.length * ROW_HEIGHT }}>
             <div className="status-line" style={{ left: startOffset(project.statusDate) }}><span>{project.statusDate}</span></div>
             {calendarWeeks.map(({ date }, index) => date.getDate() <= 7 ? <div className="month-separator" key={`month-${index}`} style={{ left: index * 7 * PX_PER_DAY }} /> : null)}
+            <svg className="dependency-overlay" width={visibleWeeks * 7 * PX_PER_DAY} height={visibleTasks.length * ROW_HEIGHT} aria-hidden="true">
+              <defs>
+                <marker id="dependency-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                  <path d="M0,0 L7,3.5 L0,7 Z" />
+                </marker>
+              </defs>
+              {dependencyLines.map((line) => <path key={line.id} d={line.path} markerEnd="url(#dependency-arrow)" />)}
+            </svg>
             {visibleTasks.map((task, visibleIndex) => {
               const index = tasks.findIndex((item) => item.id === task.id);
               const left = startOffset(task.start), width = durationWidth(task), baseline = project.baseline?.[task.id];
@@ -709,6 +779,21 @@ export function ScheduleApp() {
         <div className="calendar-panel"><h3>Työviikko</h3><div className="weekday-list">{["Su","Ma","Ti","Ke","To","Pe","La"].map((name, day) => <label key={day}><input type="checkbox" checked={project.calendar.workdays.includes(day)} onChange={(e) => updateProject({ calendar: { ...project.calendar, workdays: e.target.checked ? [...project.calendar.workdays, day].sort() : project.calendar.workdays.filter((value) => value !== day) } })} />{name}</label>)}</div>
           <h3>Vapaapäivä</h3><div className="inline-form"><input id="holiday-date" type="date" /><button onClick={() => { const input = document.querySelector<HTMLInputElement>("#holiday-date"); if (input?.value && !project.calendar.holidays.includes(input.value)) updateProject({ calendar: { ...project.calendar, holidays: [...project.calendar.holidays, input.value].sort() } }); }}>Lisää</button></div>
           <div className="holiday-list">{project.calendar.holidays.map((date) => <span key={date}>{date}<button onClick={() => updateProject({ calendar: { ...project.calendar, holidays: project.calendar.holidays.filter((item) => item !== date) } })}>×</button></span>)}</div>
+        </div>
+      </aside></div>}
+
+      {versionsOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer versions-drawer"><header><div><strong>Aikatauluversiot</strong><span>Tallenna esimerkiksi alkuperäinen, hyväksytty tai työmaakokouksen jälkeinen versio</span></div><button onClick={() => setVersionsOpen(false)}>×</button></header>
+        <div className="version-create">
+          <label>Version nimi<input value={versionTitle} onChange={(e) => setVersionTitle(e.target.value)} placeholder="Esim. Hyväksytty yleisaikataulu" /></label>
+          <label>Kuvaus<textarea value={versionDescription} onChange={(e) => setVersionDescription(e.target.value)} placeholder="Mitä tässä versiossa muuttui?" /></label>
+          <button className="primary" onClick={saveScheduleVersion}>Tallenna nykyinen aikataulu versiona</button>
+        </div>
+        <div className="version-list">
+          {scheduleVersions.length === 0 && <p>Versioita ei ole vielä tallennettu.</p>}
+          {[...scheduleVersions].reverse().map((version) => <article key={version.id}>
+            <div><strong>{version.title}</strong><span>{new Date(version.createdAt).toLocaleString("fi-FI")}</span>{version.description && <p>{version.description}</p>}</div>
+            <div><button onClick={() => restoreScheduleVersion(version.id)}>Palauta</button><button className="danger" onClick={() => deleteScheduleVersion(version.id)}>Poista</button></div>
+          </article>)}
         </div>
       </aside></div>}
 

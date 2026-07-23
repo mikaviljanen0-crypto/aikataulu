@@ -17,6 +17,7 @@ export const initialProject: ProjectState = {
   },
   baseline: null,
   snapshots: [],
+  scheduleVersions: [],
   weeklyPlans: [],
   tasks: [
     { id: "1", name: "Talo 32", location: "Talo 32", level: 0, start: "2026-07-23", duration: 30, progress: 70, kind: "summary" },

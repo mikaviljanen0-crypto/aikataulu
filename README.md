@@ -1,37 +1,47 @@
-# Aikatauluohjelmisto v1.1
+# Aikatauluohjelmisto v1.2
 
 Rakennusalan yleis- ja viikkoaikataulun kehitysversio.
 
-## Uutta v1.1-versiossa
+## Uutta v1.2-versiossa
 
-### Yksinkertaiset riippuvuudet
+### Riippuvuusnuolet
 
-- työvaiheelle voidaan valita edeltävä työvaihe
-- riippuvuustyyppi on ensimmäisessä vaiheessa loppu–alku
-- työvaiheelle voidaan antaa positiivinen tai negatiivinen viive työpäivinä
-- `Laske riippuvuudet` ajoittaa tehtävät edeltävien tehtävien perusteella
-- ohjelma tunnistaa riippuvuuskehän eikä jää laskemaan loputtomasti
+- loppu–alku-riippuvuudet näkyvät nyt nuolina Gantt-janalla
+- nuoli lähtee edeltävän tehtävän lopusta
+- nuoli päättyy seuraavan tehtävän alkuun
+- nuolia ei näytetä suodatettujen tai suljettujen rivien välillä
+- nuolet näkyvät myös tulosteessa
 
-Riippuvuuksia ei lasketa automaattisesti jokaisella muutoksella. Työnjohtaja voi muokata aikataulua vapaasti ja suorittaa laskennan halutessaan.
+### Nimetyt aikatauluversiot
 
-### Viikkoaikataulun jatkokäyttö
+Nykyinen aikataulu voidaan tallentaa nimettynä versiona, esimerkiksi:
 
-- koko viikkoaikataulu voidaan kopioida seuraavalle viikolle
-- vain keskeneräiset tehtävät voidaan siirtää seuraavalle viikolle
-- siirretyt tehtävät merkitään huomautuksella
-- viikkoaikataulun tilat voidaan päivittää yleisaikataulun toteumaan
-- yleisaikatauluun yhdistetty viikkotehtävä merkitään näkyvästi
+- Alkuperäinen yleisaikataulu
+- Tilaajan hyväksymä aikataulu
+- Työmaakokous 3
+- Lisäajan jälkeen päivitetty aikataulu
 
-## Toteuman päivitys viikkoaikataulusta
+Versiolle voidaan antaa kuvaus. Vanha versio voidaan palauttaa myöhemmin tai poistaa.
 
-Kun kaikki samaan yleisaikataulutehtävään liittyvät viikkotehtävät ovat valmiita, yleisaikataulun valmiusasteeksi asetetaan 100 %.
+Aikatauluversio tallentaa:
 
-Jos vähintään yksi viikkotehtävä on käynnissä tai valmis, yleisaikataulun valmiusastetta nostetaan vähintään 25 prosenttiin. Tätä voidaan myöhemmin tarkentaa määrien ja toteutuneiden tuntien perusteella.
+- tehtävärivit
+- päivämäärät
+- kestot
+- hierarkian
+- riippuvuudet
+- värit ja vastuut
+- tavoiteaikataulun
+
+## Ero seurantahistoriaan
+
+- **Seurantahistoria** tallentaa toteuman tiettynä seurantahetkenä.
+- **Aikatauluversio** tallentaa koko suunnitellun aikataulun rakenteen ja ajoituksen.
 
 ## Seuraavat pääkohteet
 
-1. kirjautuminen ja projektien palvelintallennus
-2. käyttäjäroolit
-3. seurantatulosteiden pysyvä versioarkisto
-4. Tocoman-tuonnin ensimmäinen tehtäväesikatselu
-5. riippuvuuksien näyttäminen nuolina Gantt-janalla
+1. projektien palvelintallennus
+2. kirjautuminen ja käyttäjäroolit
+3. versioiden vertailunäkymä
+4. Tocoman-tuonnin tehtäväesikatselu
+5. PDF-tulostuksen tarkempi sivukohtainen esikatselu
