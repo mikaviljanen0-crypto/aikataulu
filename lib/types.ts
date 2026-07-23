@@ -49,6 +49,13 @@ export interface ScheduleVersion {
   baseline: Record<string, BaselineTask> | null;
 }
 
+export interface VersionDifference {
+  taskId: string;
+  taskName: string;
+  type: "added" | "removed" | "changed";
+  changes: string[];
+}
+
 export type WeeklyPlanStatus = "planned" | "in-progress" | "done" | "blocked";
 
 export interface WeeklyPlanItem {

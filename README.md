@@ -1,47 +1,48 @@
-# Aikatauluohjelmisto v1.2
+# Aikatauluohjelmisto v1.3
 
 Rakennusalan yleis- ja viikkoaikataulun kehitysversio.
 
-## Uutta v1.2-versiossa
+## Uutta v1.3-versiossa
 
-### Riippuvuusnuolet
+### Aikatauluversioiden vertailu
 
-- loppu–alku-riippuvuudet näkyvät nyt nuolina Gantt-janalla
-- nuoli lähtee edeltävän tehtävän lopusta
-- nuoli päättyy seuraavan tehtävän alkuun
-- nuolia ei näytetä suodatettujen tai suljettujen rivien välillä
-- nuolet näkyvät myös tulosteessa
+Kaksi tallennettua aikatauluversiota voidaan verrata keskenään. Vertailu tunnistaa:
 
-### Nimetyt aikatauluversiot
+- lisätyt tehtävät
+- poistetut tehtävät
+- nimen muutokset
+- aloituspäivän muutokset
+- keston muutokset
+- hierarkiatason muutokset
+- rakennuksen tai alueen muutokset
+- vastuuhenkilön muutokset
+- riippuvuuksien muutokset
+- viiveiden muutokset
+- värimuutokset
 
-Nykyinen aikataulu voidaan tallentaa nimettynä versiona, esimerkiksi:
+Vertailun tulokset ryhmitellään lisättyihin, poistettuihin ja muuttuneisiin tehtäviin.
 
-- Alkuperäinen yleisaikataulu
-- Tilaajan hyväksymä aikataulu
-- Työmaakokous 3
-- Lisäajan jälkeen päivitetty aikataulu
+### Poikkeama tavoitteesta
 
-Versiolle voidaan antaa kuvaus. Vanha versio voidaan palauttaa myöhemmin tai poistaa.
+Kun tehtävän nykyinen aloitus tai kesto poikkeaa tallennetusta tavoitteesta:
 
-Aikatauluversio tallentaa:
+- tavoitejana korostetaan
+- tehtävärivi merkitään oranssilla reunalla
 
-- tehtävärivit
-- päivämäärät
-- kestot
-- hierarkian
-- riippuvuudet
-- värit ja vastuut
-- tavoiteaikataulun
+Näin työmaakokouksen seurantatulosteesta näkee nopeasti tehtävät, joiden suunnitelmaa on muutettu.
 
-## Ero seurantahistoriaan
+## Käyttöesimerkki
 
-- **Seurantahistoria** tallentaa toteuman tiettynä seurantahetkenä.
-- **Aikatauluversio** tallentaa koko suunnitellun aikataulun rakenteen ja ajoituksen.
+1. Tallenna versio `Urakkasopimuksen aikataulu`.
+2. Muokkaa aikataulua työmaan edetessä.
+3. Tallenna versio `Työmaakokous 4`.
+4. Valitse molemmat versiot vertailuun.
+5. Ohjelma näyttää tarkasti, mitkä työvaiheet ja päivämäärät muuttuivat.
 
 ## Seuraavat pääkohteet
 
 1. projektien palvelintallennus
 2. kirjautuminen ja käyttäjäroolit
-3. versioiden vertailunäkymä
-4. Tocoman-tuonnin tehtäväesikatselu
-5. PDF-tulostuksen tarkempi sivukohtainen esikatselu
+3. Tocoman-tuonnin tehtäväesikatselu
+4. tulostettava versiovertailuraportti
+5. projektien arkistointi

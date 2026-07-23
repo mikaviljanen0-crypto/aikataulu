@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { addCalendarDays, addWorkdays, daysBetween, formatDate, isoWeek, mondayOfWeek, monthName, parseDate, workdayEnd } from "../lib/calendar";
 import { initialWorkspace } from "../lib/sample";
-import type { ProjectState, ScheduleVersion, Task, TaskKind, WeeklyPlan, WeeklyPlanItem, WeeklyPlanStatus, WorkspaceState } from "../lib/types";
+import type { ProjectState, ScheduleVersion, Task, TaskKind, VersionDifference, WeeklyPlan, WeeklyPlanItem, WeeklyPlanStatus, WorkspaceState } from "../lib/types";
+import { compareScheduleVersions } from "../lib/versionCompare";
 import { inspectPlr, type PlrReport } from "../lib/plrInspector";
 import { comparePlrFiles, rangeLabel, type PlrComparison } from "../lib/plrCompare";
 
@@ -104,6 +105,9 @@ export function ScheduleApp() {
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [versionTitle, setVersionTitle] = useState("");
   const [versionDescription, setVersionDescription] = useState("");
+  const [compareLeftId, setCompareLeftId] = useState("");
+  const [compareRightId, setCompareRightId] = useState("");
+  const [versionDifferences, setVersionDifferences] = useState<VersionDifference[]>([]);
   const [savedAt, setSavedAt] = useState("");
   const [calendarStart, setCalendarStart] = useState(mondayOfWeek("2026-07-06"));
   const importRef = useRef<HTMLInputElement>(null);
@@ -390,6 +394,20 @@ export function ScheduleApp() {
     updateProject({ scheduleVersions: scheduleVersions.filter((item) => item.id !== versionId) });
   };
 
+  const compareVersions = () => {
+    const left = scheduleVersions.find((item) => item.id === compareLeftId);
+    const right = scheduleVersions.find((item) => item.id === compareRightId);
+    if (!left || !right) {
+      window.alert("Valitse kaksi aikatauluversiota.");
+      return;
+    }
+    if (left.id === right.id) {
+      window.alert("Valitse kaksi eri versiota.");
+      return;
+    }
+    setVersionDifferences(compareScheduleVersions(left, right));
+  };
+
   const weeklyPlans = project.weeklyPlans ?? [];
   const activeWeeklyPlan = weeklyPlans.find((plan) => plan.weekStart === weeklyStart);
 
@@ -631,7 +649,7 @@ export function ScheduleApp() {
             <tbody>{visibleTasks.map((task) => {
               const index = tasks.findIndex((item) => item.id === task.id);
               return (
-              <tr key={task.id} className={`${task.kind === "summary" ? "summary-row" : ""} ${task.kind === "milestone" ? "milestone-row" : ""} ${task.id === selectedId ? "selected-row" : ""}`} onClick={() => setSelectedId(task.id)}>
+              <tr key={task.id} className={`${task.kind === "summary" ? "summary-row" : ""} ${task.kind === "milestone" ? "milestone-row" : ""} ${task.id === selectedId ? "selected-row" : ""} ${project.baseline?.[task.id] && (project.baseline[task.id].start !== task.start || project.baseline[task.id].duration !== task.duration) ? "baseline-difference-row" : ""}`} onClick={() => setSelectedId(task.id)}>
                 <td><input type="radio" readOnly checked={task.id === selectedId} /></td>{printSettings.showWbs && <td>{buildWbs(tasks, index)}</td>}
                 <td className="task-name-cell">
                   {task.kind === "summary" && <button className="collapse-button" onClick={(event) => { event.stopPropagation(); setCollapsedIds((items) => items.includes(task.id) ? items.filter((id) => id !== task.id) : [...items, task.id]); }}>{collapsedIds.includes(task.id) ? "▸" : "▾"}</button>}
@@ -670,7 +688,7 @@ export function ScheduleApp() {
               const index = tasks.findIndex((item) => item.id === task.id);
               const left = startOffset(task.start), width = durationWidth(task), baseline = project.baseline?.[task.id];
               return <div className="gantt-row" style={{ top: visibleIndex * ROW_HEIGHT }} key={task.id}>
-                {baseline && <div className="baseline-bar" style={{ left: startOffset(baseline.start), width: durationWidth({ start: baseline.start, duration: baseline.duration }) }} />}
+                {baseline && <div className={`baseline-bar ${baseline.start !== task.start || baseline.duration !== task.duration ? "baseline-changed" : ""}`} style={{ left: startOffset(baseline.start), width: durationWidth({ start: baseline.start, duration: baseline.duration }) }} />}
                 {task.kind === "milestone" ? <div className="milestone" style={{ left }}>◆</div> :
                   <div
                     className={`task-bar ${task.kind === "summary" ? "summary-bar" : ""}`}
@@ -782,12 +800,36 @@ export function ScheduleApp() {
         </div>
       </aside></div>}
 
-      {versionsOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer versions-drawer"><header><div><strong>Aikatauluversiot</strong><span>Tallenna esimerkiksi alkuperäinen, hyväksytty tai työmaakokouksen jälkeinen versio</span></div><button onClick={() => setVersionsOpen(false)}>×</button></header>
+      {versionsOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer versions-drawer"><header><div><strong>Aikatauluversiot</strong><span>Tallenna, palauta ja vertaa suunnittelutilanteita</span></div><button onClick={() => setVersionsOpen(false)}>×</button></header>
         <div className="version-create">
           <label>Version nimi<input value={versionTitle} onChange={(e) => setVersionTitle(e.target.value)} placeholder="Esim. Hyväksytty yleisaikataulu" /></label>
           <label>Kuvaus<textarea value={versionDescription} onChange={(e) => setVersionDescription(e.target.value)} placeholder="Mitä tässä versiossa muuttui?" /></label>
           <button className="primary" onClick={saveScheduleVersion}>Tallenna nykyinen aikataulu versiona</button>
         </div>
+
+        <div className="version-compare">
+          <h3>Vertaa versioita</h3>
+          <div>
+            <select value={compareLeftId} onChange={(e) => setCompareLeftId(e.target.value)}>
+              <option value="">Vanhempi versio</option>
+              {scheduleVersions.map((version) => <option key={version.id} value={version.id}>{version.title}</option>)}
+            </select>
+            <span>→</span>
+            <select value={compareRightId} onChange={(e) => setCompareRightId(e.target.value)}>
+              <option value="">Uudempi versio</option>
+              {scheduleVersions.map((version) => <option key={version.id} value={version.id}>{version.title}</option>)}
+            </select>
+            <button onClick={compareVersions}>Vertaa</button>
+          </div>
+          {versionDifferences.length > 0 && <div className="version-differences">
+            <strong>{versionDifferences.length} muutosta</strong>
+            {versionDifferences.map((difference) => <article key={`${difference.taskId}-${difference.type}`} className={`difference-${difference.type}`}>
+              <div><strong>{difference.taskName}</strong><span>{difference.type === "added" ? "Lisätty" : difference.type === "removed" ? "Poistettu" : "Muuttunut"}</span></div>
+              <ul>{difference.changes.map((change) => <li key={change}>{change}</li>)}</ul>
+            </article>)}
+          </div>}
+        </div>
+
         <div className="version-list">
           {scheduleVersions.length === 0 && <p>Versioita ei ole vielä tallennettu.</p>}
           {[...scheduleVersions].reverse().map((version) => <article key={version.id}>
