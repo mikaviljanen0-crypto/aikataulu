@@ -1,6 +1,12 @@
 export type PaperSize = "A4" | "A3";
 export type TaskKind = "summary" | "task" | "milestone";
 
+export interface ProjectCalendar {
+  workdays: number[];
+  holidays: string[];
+  shutdownPeriods: Array<{ id: string; name: string; start: string; end: string }>;
+}
+
 export interface Task {
   id: string;
   name: string;
@@ -29,12 +35,21 @@ export interface TrackingSnapshot {
 }
 
 export interface ProjectState {
+  id: string;
   projectName: string;
   scheduleName: string;
+  projectNumber?: string;
+  client?: string;
   updatedDate: string;
   statusDate: string;
   paperSize: PaperSize;
+  calendar: ProjectCalendar;
   tasks: Task[];
   baseline: Record<string, BaselineTask> | null;
   snapshots: TrackingSnapshot[];
+}
+
+export interface WorkspaceState {
+  activeProjectId: string;
+  projects: ProjectState[];
 }

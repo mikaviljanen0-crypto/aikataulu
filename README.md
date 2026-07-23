@@ -1,33 +1,33 @@
-# Aikatauluohjelmisto v0.3
+# Aikatauluohjelmisto v0.4
 
-Rakennusalan selainpohjaisen jana-aikataulun kehitysversio. Tavoitteena on korvata Tocoman Aikataulu teidän todellisessa peruskäytössänne.
+Rakennusalan jana-aikatauluohjelmiston kehitysversio.
 
-## v0.3:n tärkeimmät lisäykset
+## Uutta v0.4-versiossa
 
-- summatehtävien alku, loppu ja valmiusaste lasketaan alatehtävistä
-- loppupäivä näkyy taulukossa
-- välitavoitteet
-- valitun tehtävän kopiointi
-- alatehtävät poistetaan yhdessä summatehtävän kanssa
+- useiden projektien hallinta samassa selaimessa
+- uuden tyhjän projektin perustaminen
+- projektin kopiointi ja poistaminen
+- projektinumero
+- koko työtilan varmuuskopiointi JSON-tiedostoksi
+- projektikohtainen työviikko
+- projektikohtaiset vapaapäivät
+- vapaapäivät huomioiva tehtävän loppupäivän laskenta
+- projektin vaihto sivupaneelista
 - kalenterin siirto viiden viikon jaksoissa
-- seurantatilanteiden historia ja palautus
-- kuukausittaiseen työmaakokousseurantaan sopiva toteumapaneeli
-- A4- ja A3-vaakatulostus
-- JSON-varmuuskopiointi
 
-## Käynnistys myöhemmin kehityskoneella
+## Käynnistys kehityskoneella
 
 ```bash
 npm install
 npm run dev
 ```
 
-Komennot kirjoitetaan Visual Studio Coden terminaaliin tai Windows Terminaliin projektikansiossa. Tätä ei tarvitse tehdä ennen kuin projekti viedään Verceliin tai sitä testataan paikallisesti.
+Komennot suoritetaan projektikansiossa Visual Studio Coden terminaalissa. Tätä ei tarvitse tehdä ennen Vercel-julkaisua tai paikallista testausta.
 
-## Seuraavat työvaiheet
+## Seuraavat pääkohteet
 
-1. oikea projektinäkymä ja useiden projektien hallinta
-2. suomalainen projektikalenteri, pyhäpäivät ja erilliset lomajaksot
-3. Tocoman `.plr` -tuonnin tutkimustyökalu
-4. tulostuksen sivutus ja tulostusalueen esikatselu
-5. tavoite- ja toteumajanojen tarkempi esitystapa
+1. Tocoman `.plr` -tuonnin erillinen analyysityökalu
+2. tavoite-, toteuma- ja jäljellä-janan tarkempi tulostus
+3. tulostusalueen esikatselu ja automaattinen A4/A3-sovitus
+4. työvaiheiden raahaaminen taulukossa
+5. suomalaiset liikkuvat pyhäpäivät
