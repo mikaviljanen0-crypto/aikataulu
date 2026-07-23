@@ -1,27 +1,22 @@
-# v0.3 – toiminnallinen kehitys
+# v1.2 – riippuvuusnuolet ja aikatauluversiot
 
-Tässä versiossa aikataulun peruslogiikkaa vietiin lähemmäksi Tocomanin käytännön työnkulkua.
+## Riippuvuusnuolet
 
-## Summatehtävät
+Gantt-janalle piirretään SVG-kerros, joka käyttää samaa tehtäväjärjestystä kuin näkyvä taulukko. Nuoli muodostetaan suorakulmaisena reittinä:
 
-Rivi muuttuu summatehtäväksi, kun sen alla on yhden tason sisennettyjä tehtäviä. Summatehtävästä lasketaan automaattisesti:
+1. edeltävän tehtävän loppu
+2. vaakasuora siirtymä oikealle
+3. pystysuora siirtymä seuraavan tehtävän riville
+4. nuolenkärki seuraavan tehtävän alussa
 
-- aikaisin aloitus
-- myöhäisin valmistuminen
-- kokonaiskesto
-- kestolla painotettu valmiusaste
+## Aikatauluversiot
 
-Summatehtävää ei muokata suoraan päivämääräkentistä.
+Versio on pysyvä kopio suunnittelutilanteesta. Se eroaa toteuman seurantatilanteesta, koska versioon kuuluu koko tehtävärakenne.
 
-## Seurantatilanteet
+Tyypillinen käyttö:
 
-Työnjohtaja asettaa seurantahetken, päivittää toteumat ja tallentaa seurantatilanteen. Tallennettu tilanne voidaan palauttaa myöhemmin esimerkiksi työmaakokouksen tilanteen tarkastelua varten.
-
-## Välitavoite
-
-Välitavoite on yhden päivän tapahtuma, joka esitetään timanttisymbolina janalla. Sitä voidaan käyttää esimerkiksi:
-
-- työmaan luovutus
-- telinepurku alkaa
-- vesikatto valmis
-- vastaanottotarkastus
+1. yleisaikataulu laaditaan
+2. versio tallennetaan nimellä `Urakkasopimuksen aikataulu`
+3. työmaa etenee ja suunnitelmaa muutetaan
+4. uusi versio tallennetaan työmaakokouksen jälkeen
+5. vanhoihin versioihin voidaan palata ilman erillisiä tiedostoja

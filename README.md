@@ -1,41 +1,81 @@
-# Aikatauluohjelmisto v1.4
+export interface PlrReport {
+  fileName: string;
+  fileSize: number;
+  isCompoundFile: boolean;
+  streamNames: string[];
+  textSamples: string[];
+  probableVersionNames: string[];
+  notes: string[];
+}
 
-Rakennusalan yleis- ja viikkoaikataulun kehitysversio.
+const OLE_SIGNATURE = [0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1];
 
-## Uutta v1.4-versiossa
+function unique(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
 
-### Projektien arkistointi
+function extractUtf16Strings(bytes: Uint8Array): string[] {
+  const values: string[] = [];
+  let current = "";
+  for (let i = 0; i + 1 < bytes.length; i += 2) {
+    const code = bytes[i] | (bytes[i + 1] << 8);
+    const allowed = code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126) || (code >= 160 && code <= 591);
+    if (allowed) current += String.fromCharCode(code);
+    else {
+      if (current.trim().length >= 4) values.push(current.trim());
+      current = "";
+    }
+  }
+  if (current.trim().length >= 4) values.push(current.trim());
+  return values;
+}
 
-- projekti voidaan siirtää arkistoon ilman poistamista
-- aktiiviset ja arkistoidut projektit näkyvät erillisillä välilehdillä
-- arkistoitu projekti voidaan palauttaa käyttöön
-- projektihakua voidaan käyttää nimellä, projektinumerolla tai asiakkaalla
-- projektikortissa näkyy tehtävien ja seurantatilanteiden määrä
+function extractAsciiStrings(bytes: Uint8Array): string[] {
+  const values: string[] = [];
+  let current = "";
+  for (const code of bytes) {
+    if (code === 9 || (code >= 32 && code <= 126)) current += String.fromCharCode(code);
+    else {
+      if (current.trim().length >= 5) values.push(current.trim());
+      current = "";
+    }
+  }
+  if (current.trim().length >= 5) values.push(current.trim());
+  return values;
+}
 
-Arkistointi sopii valmistuneille työmaille. Poistamista tarvitaan vain virheellisesti luoduille projekteille.
+export async function inspectPlr(file: File): Promise<PlrReport> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const isCompoundFile = OLE_SIGNATURE.every((value, index) => bytes[index] === value);
+  const allStrings = unique([...extractUtf16Strings(bytes), ...extractAsciiStrings(bytes)])
+    .filter((value) => value.length <= 160);
 
-### Tulostettava versiovertailuraportti
+  const streamNames = allStrings.filter((value) =>
+    /^(Contents|ContentsRev\d+|Pluto project management|SummaryInformation|DocumentSummaryInformation)/i.test(value)
+  ).slice(0, 50);
 
-Aikatauluversioiden vertailusta voidaan avata oma raporttinäkymä, jossa näkyvät:
+  const probableVersionNames = allStrings.filter((value) =>
+    /ContentsRev\d+|Pluto project management ver\.|Tocoman|PlanMan/i.test(value)
+  ).slice(0, 30);
 
-- projekti
-- vertailtavien versioiden nimet
-- lisätyt tehtävät
-- poistetut tehtävät
-- muuttuneet tehtävät
-- jokaisen tehtävän tarkat muutokset
-- muutosten kokonaismäärä
+  const textSamples = allStrings.filter((value) =>
+    /[A-Za-zÅÄÖåäö]{4}/.test(value) &&
+    !/Microsoft|SummaryInformation|ContentsRev/i.test(value)
+  ).slice(0, 120);
 
-Raportti voidaan tulostaa PDF:ksi tai paperille.
-
-### CSV-vienti
-
-Versiovertailun tulokset voidaan viedä puolipiste-eroteltuna CSV-tiedostona Excel-käsittelyä varten.
-
-## Seuraavat pääkohteet
-
-1. palvelintallennus ja kirjautuminen
-2. käyttäjäroolit ja yrityskohtaiset projektit
-3. seurantatulosteen pysyvä PDF-arkisto
-4. Tocoman-tuonnin tehtäväesikatselu
-5. projektin arkistodokumentit ja liitteet
+  return {
+    fileName: file.name,
+    fileSize: file.size,
+    isCompoundFile,
+    streamNames: unique(streamNames),
+    textSamples: unique(textSamples),
+    probableVersionNames: unique(probableVersionNames),
+    notes: [
+      isCompoundFile
+        ? "Tiedosto tunnistettiin Microsoft Compound Document / OLE -säiliöksi."
+        : "Tiedosto ei vastaa tunnettua OLE-säiliön allekirjoitusta.",
+      "Tämä vaihe vain analysoi tiedoston rakennetta eikä muuta alkuperäistä tiedostoa.",
+      "Varsinainen tehtävä-, päivämäärä- ja hierarkiatuonti rakennetaan tunnistettujen tietovirtojen perusteella."
+    ]
+  };
+}

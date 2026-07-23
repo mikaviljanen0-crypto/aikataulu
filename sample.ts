@@ -1,19 +1,35 @@
-# v0.8 – tulostusalue ja sivutus
+# v0.5 – Tocoman-tuonnin analyysivaihe
 
-## Aikavälirajaus
+## Tavoite
 
-Tulostusasetuksissa määritetään tulostettava alku- ja loppupäivä. Koko projektin aikaväli voidaan muodostaa automaattisesti tehtävien aikaisimmasta aloituksesta myöhäisimpään lopetukseen.
+Vanhojen `.plr`-projektien säilyttäminen käytettävissä myös Tocoman-lisenssin päätyttyä.
 
-## Sivutustavat
+## Turvallisuusperiaate
 
-### Yksi sivu
+Tuontityökalu ei kirjoita `.plr`-tiedostoon eikä muuta alkuperäistä tiedostoa. Selain lukee tiedoston vain analyysia varten.
 
-Sopii tavalliseen A4- tai A3-vaakatulosteeseen. Ohjelma tiivistää taulukkoa ja jana-aluetta.
+## Tunnistetut lähtökohdat
 
-### Useita sivuja
+Aiemman tiedostoanalyysin perusteella `.plr` on Microsoft Compound Document / OLE -säiliö. Projektitiedostoissa on esiintynyt muun muassa nimiä:
 
-Sopii pitkille tai usealle vuodelle ulottuville aikatauluille. Otsikkorivi voidaan toistaa sivuilla.
+- `Contents`
+- `ContentsRev153`
+- `ContentsRev200`
+- `ContentsRev256`
+- `ContentsRev275`
+- `ContentsRev300`
+- `ContentsRev350`
+- `Pluto project management ver. ...`
 
-## Kalenterin visuaaliset rajat
+## Seuraava tutkimusvaihe
 
-Kuukauden vaihtumiskohtaa korostetaan pystylinjalla. Seurantahetki esitetään omalla oranssilla viivalla ja päivämäärämerkinnällä.
+Testitiedostoja 1–7 verrataan tavutasolla. Kukin tiedosto muuttaa vain yhtä ominaisuutta, jolloin voidaan paikantaa:
+
+1. tehtävän nimi
+2. aloituspäivä
+3. kesto
+4. hierarkiataso
+5. janan väri
+6. tavoite- ja toteumatieto
+
+Kun nämä on tunnistettu, rakennetaan ensimmäinen varsinainen `.plr` → Aikataulu-projekti -muunnin.

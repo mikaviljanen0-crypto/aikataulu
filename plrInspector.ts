@@ -1,56 +1,61 @@
-import type { ProjectState, WorkspaceState } from "./types";
-import { finnishPublicHolidays } from "./calendar";
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const initialProject: ProjectState = {
-  id: "kissankello",
-  projectName: "As Oy Kissankello",
-  scheduleName: "Yleisaikataulu",
-  projectNumber: "2607",
-  client: "As Oy Kissankello",
-  updatedDate: "2026-07-23",
-  statusDate: "2026-08-31",
-  paperSize: "A4",
-  calendar: {
-    workdays: [1,2,3,4,5],
-    holidays: finnishPublicHolidays(2026),
-    shutdownPeriods: []
-  },
-  baseline: null,
-  snapshots: [],
-  tasks: [
-    { id: "1", name: "Talo 32", location: "Talo 32", level: 0, start: "2026-07-23", duration: 30, progress: 70, kind: "summary" },
-    { id: "2", name: "Purkutyöt", location: "Talo 32", level: 1, start: "2026-07-23", duration: 5, progress: 100, kind: "task", actualStart: "2026-07-23", actualEnd: "2026-07-29" },
-    { id: "3", name: "Muottityö, raudoitus ja valu", location: "Talo 32", level: 1, start: "2026-07-30", duration: 5, progress: 100, kind: "task", actualStart: "2026-07-30", actualEnd: "2026-08-05" },
-    { id: "4", name: "Hiekkapuhallus", location: "Talo 32", level: 1, start: "2026-08-06", duration: 5, progress: 80, kind: "task", actualStart: "2026-08-06" },
-    { id: "5", name: "Betonikorjaus", location: "Talo 32", level: 1, start: "2026-08-13", duration: 5, progress: 40, kind: "task" },
-    { id: "6", name: "Ylitasoitus", location: "Talo 32", level: 1, start: "2026-08-20", duration: 5, progress: 0, kind: "task" },
-    { id: "7", name: "Maalaus- ja pinnoitus", location: "Talo 32", level: 1, start: "2026-08-27", duration: 5, progress: 0, kind: "task" },
-    { id: "8", name: "Talo 30", location: "Talo 30", level: 0, start: "2026-08-06", duration: 30, progress: 25, kind: "summary" },
-    { id: "9", name: "Purkutyöt", location: "Talo 30", level: 1, start: "2026-08-06", duration: 5, progress: 100, kind: "task" },
-    { id: "10", name: "Muottityö, raudoitus ja valu", location: "Talo 30", level: 1, start: "2026-08-13", duration: 5, progress: 40, kind: "task" },
-    { id: "11", name: "Hiekkapuhallus", location: "Talo 30", level: 1, start: "2026-08-20", duration: 5, progress: 0, kind: "task" },
-    { id: "12", name: "Betonikorjaus", location: "Talo 30", level: 1, start: "2026-08-27", duration: 5, progress: 0, kind: "task" },
-    { id: "13", name: "Ylitasoitus", location: "Talo 30", level: 1, start: "2026-09-03", duration: 5, progress: 0, kind: "task" },
-    { id: "14", name: "Maalaus- ja pinnoitus", location: "Talo 30", level: 1, start: "2026-09-10", duration: 5, progress: 0, kind: "task" },
-    { id: "15", name: "Parvekekaide- ja lasiasennus", location: "Molemmat talot", level: 0, start: "2026-08-31", duration: 15, progress: 0, kind: "task" },
-    { id: "16", name: "Pihakatoksien rakentaminen", location: "Piha-alue", level: 0, start: "2026-07-23", duration: 5, progress: 100, kind: "task" }
-  ]
-};
-
-export const initialWorkspace: WorkspaceState = {
-  activeProjectId: initialProject.id,
-  projects: [initialProject],
-  printSettings: {
-    showWbs: true,
-    showDuration: true,
-    showStart: true,
-    showEnd: true,
-    showProgress: true,
-    showLegend: true,
-    fitToOnePage: true,
-    pageMode: "one-page",
-    rangeStart: "2026-07-06",
-    rangeEnd: "2026-12-06",
-    repeatHeader: true
+export function parseDate(value: string): Date {
+  return new Date(`${value}T00:00:00`);
+}
+export function formatDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+export function mondayOfWeek(value: string): string {
+  const date = parseDate(value);
+  const day = date.getDay() || 7;
+  date.setDate(date.getDate() - day + 1);
+  return formatDate(date);
+}
+export function isoWeek(date: Date): number {
+  const copy = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = copy.getUTCDay() || 7;
+  copy.setUTCDate(copy.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(copy.getUTCFullYear(), 0, 1));
+  return Math.ceil((((copy.getTime() - yearStart.getTime()) / DAY_MS) + 1) / 7);
+}
+export function monthName(date: Date): string {
+  return date.toLocaleDateString("fi-FI", { month: "long" });
+}
+export function daysBetween(start: string, end: string): number {
+  return Math.round((parseDate(end).getTime() - parseDate(start).getTime()) / DAY_MS);
+}
+export function isWorkingDay(date: Date, workdays = [1,2,3,4,5], holidays: string[] = []): boolean {
+  return workdays.includes(date.getDay()) && !holidays.includes(formatDate(date));
+}
+export function addCalendarDays(value: string, days: number): string {
+  const date = parseDate(value);
+  date.setDate(date.getDate() + days);
+  return formatDate(date);
+}
+export function addWorkdays(value: string, delta: number, workdays = [1,2,3,4,5], holidays: string[] = []): string {
+  const date = parseDate(value);
+  const direction = delta >= 0 ? 1 : -1;
+  let remaining = Math.abs(delta);
+  while (remaining > 0) {
+    date.setDate(date.getDate() + direction);
+    if (isWorkingDay(date, workdays, holidays)) remaining -= 1;
   }
-};
+  return formatDate(date);
+}
+export function workdayEnd(value: string, duration: number, workdays = [1,2,3,4,5], holidays: string[] = []): string {
+  let date = parseDate(value);
+  let remaining = Math.max(1, duration) - 1;
+  while (remaining > 0) {
+    date.setDate(date.getDate() + 1);
+    if (isWorkingDay(date, workdays, holidays)) remaining -= 1;
+  }
+  return formatDate(date);
+}
+export function finnishPublicHolidays(year: number): string[] {
+  // Fixed-date holidays. Movable holidays can be added manually in v0.4 calendar panel.
+  return [
+    `${year}-01-01`, `${year}-01-06`, `${year}-05-01`,
+    `${year}-12-06`, `${year}-12-24`, `${year}-12-25`, `${year}-12-26`
+  ];
+}
