@@ -1,0 +1,13 @@
+@media print {
+  .topbar nav {
+    display: none;
+  }
+
+  .app-shell {
+    min-width: 0;
+  }
+
+  .schedule {
+    grid-template-columns: 45% 55%;
+  }
+}

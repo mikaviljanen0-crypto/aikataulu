@@ -1,0 +1,72 @@
+.gantt-pane {
+  overflow: auto;
+}
+
+.calendar-header {
+  height: 54px;
+  display: flex;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--header);
+  border-bottom: 1px solid var(--border);
+}
+
+.week {
+  width: 154px;
+  flex: 0 0 154px;
+  display: grid;
+  grid-template-rows: 25px 29px;
+  border-right: 1px solid #bcc6d1;
+  text-align: center;
+}
+
+.week span {
+  padding-top: 6px;
+  font-size: 11px;
+  color: #586577;
+  text-transform: capitalize;
+}
+
+.week strong {
+  padding-top: 5px;
+  border-top: 1px solid #cdd4dc;
+  font-size: 12px;
+}
+
+.gantt-body {
+  min-width: 1848px;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent 21px,
+    #edf0f3 21px,
+    #edf0f3 22px
+  );
+}
+
+.gantt-row {
+  position: relative;
+  height: 40px;
+  border-bottom: 1px solid var(--border);
+}
+
+.task-bar {
+  position: absolute;
+  top: 9px;
+  height: 22px;
+  min-width: 22px;
+  border: 1px solid #145aaf;
+  border-radius: 3px;
+  background: linear-gradient(#2f87e9, #176dcc);
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 7px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+}
+
+.task-bar span {
+  font-size: 11px;
+  font-weight: 700;
+}

@@ -1,0 +1,42 @@
+.topbar {
+  min-height: 58px;
+  background: #172b4d;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+}
+
+.brand {
+  display: grid;
+  gap: 2px;
+}
+
+.brand strong {
+  font-size: 20px;
+}
+
+.brand span {
+  color: #c5d1df;
+  font-size: 12px;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 7px;
+}
+
+.topbar button {
+  background: white;
+  color: #172b4d;
+}
+
+.topbar button:hover {
+  background: #edf3fb;
+}
+
+.topbar button.primary {
+  background: var(--primary);
+  color: white;
+}

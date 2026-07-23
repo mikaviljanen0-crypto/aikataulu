@@ -1,0 +1,83 @@
+.app-shell {
+  min-width: 1180px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 590px minmax(900px, 1fr);
+  background: white;
+  overflow: auto;
+}
+
+.task-pane {
+  border-right: 2px solid #9ca8b5;
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th,
+td {
+  height: 40px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 6px;
+  text-align: left;
+  font-size: 13px;
+}
+
+th {
+  height: 54px;
+  background: var(--header);
+  color: #374354;
+  font-size: 12px;
+}
+
+.number-column {
+  width: 42px;
+}
+
+.duration-column {
+  width: 72px;
+}
+
+.date-column {
+  width: 118px;
+}
+
+td input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 5px;
+}
+
+td input:focus {
+  outline: none;
+  border-color: #7aa7dc;
+  background: white;
+}
+
+tr.selected td {
+  background: #eaf3ff;
+}
+
+footer {
+  min-height: 34px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px;
+  border-top: 1px solid var(--border);
+  background: white;
+  color: #667385;
+  font-size: 12px;
+}
