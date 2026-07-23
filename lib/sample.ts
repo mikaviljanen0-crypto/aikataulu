@@ -39,5 +39,14 @@ export const initialProject: ProjectState = {
 
 export const initialWorkspace: WorkspaceState = {
   activeProjectId: initialProject.id,
-  projects: [initialProject]
+  projects: [initialProject],
+  printSettings: {
+    showWbs: true,
+    showDuration: true,
+    showStart: true,
+    showEnd: true,
+    showProgress: true,
+    showLegend: true,
+    fitToOnePage: true
+  }
 };

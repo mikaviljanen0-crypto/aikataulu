@@ -33,6 +33,12 @@ function descendants(tasks: Task[], index: number): Task[] {
 }
 function normalizedTasks(project: ProjectState): Task[] {
   const { workdays, holidays } = project.calendar;
+  const printSettings = workspace.printSettings ?? {
+    showWbs: true, showDuration: true, showStart: true, showEnd: true,
+    showProgress: true, showLegend: true, fitToOnePage: true
+  };
+  const updatePrintSettings = (patch: Partial<typeof printSettings>) =>
+    commitWorkspace({ ...workspace, printSettings: { ...printSettings, ...patch } });
   return project.tasks.map((task, index, tasks) => {
     const children = descendants(tasks, index).filter((child) => child.level === task.level + 1);
     if (children.length === 0) return { ...task, kind: task.kind === "summary" ? "task" : task.kind };
@@ -68,6 +74,9 @@ export function ScheduleApp() {
   const [plrReport, setPlrReport] = useState<PlrReport | null>(null);
   const [plrComparison, setPlrComparison] = useState<PlrComparison | null>(null);
   const [plrBusy, setPlrBusy] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
+  const [undoStack, setUndoStack] = useState<WorkspaceState[]>([]);
+  const [redoStack, setRedoStack] = useState<WorkspaceState[]>([]);
   const [savedAt, setSavedAt] = useState("");
   const [calendarStart, setCalendarStart] = useState(mondayOfWeek("2026-07-06"));
   const importRef = useRef<HTMLInputElement>(null);
@@ -75,6 +84,31 @@ export function ScheduleApp() {
   const plrCompareRef = useRef<HTMLInputElement>(null);
 
   const project = workspace.projects.find((item) => item.id === workspace.activeProjectId) ?? workspace.projects[0];
+
+  const commitWorkspace = (next: WorkspaceState | ((current: WorkspaceState) => WorkspaceState)) => {
+    setWorkspace((current) => {
+      const resolved = typeof next === "function" ? next(current) : next;
+      setUndoStack((items) => [...items.slice(-39), current]);
+      setRedoStack([]);
+      return resolved;
+    });
+  };
+
+  const undo = () => {
+    const previous = undoStack[undoStack.length - 1];
+    if (!previous) return;
+    setRedoStack((items) => [...items, workspace]);
+    setUndoStack((items) => items.slice(0, -1));
+    setWorkspace(previous);
+  };
+
+  const redo = () => {
+    const next = redoStack[redoStack.length - 1];
+    if (!next) return;
+    setUndoStack((items) => [...items, workspace]);
+    setRedoStack((items) => items.slice(0, -1));
+    setWorkspace(next);
+  };
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -90,12 +124,18 @@ export function ScheduleApp() {
   }, [workspace, project.paperSize]);
 
   const updateProject = (patch: Partial<ProjectState>) => {
-    setWorkspace((current) => ({ ...current, projects: current.projects.map((item) => item.id === current.activeProjectId ? { ...item, ...patch } : item) }));
+    commitWorkspace((current) => ({ ...current, projects: current.projects.map((item) => item.id === current.activeProjectId ? { ...item, ...patch } : item) }));
   };
   const tasks = useMemo(() => normalizedTasks(project), [project]);
   const selectedIndex = tasks.findIndex((task) => task.id === selectedId);
   const selectedTask = tasks[selectedIndex];
   const { workdays, holidays } = project.calendar;
+  const printSettings = workspace.printSettings ?? {
+    showWbs: true, showDuration: true, showStart: true, showEnd: true,
+    showProgress: true, showLegend: true, fitToOnePage: true
+  };
+  const updatePrintSettings = (patch: Partial<typeof printSettings>) =>
+    commitWorkspace({ ...workspace, printSettings: { ...printSettings, ...patch } });
 
   const calendarWeeks = useMemo(() => {
     const start = parseDate(calendarStart);
@@ -163,18 +203,18 @@ export function ScheduleApp() {
 
   const createProject = () => {
     const next = emptyProject();
-    setWorkspace((current) => ({ activeProjectId: next.id, projects: [...current.projects, next] }));
+    commitWorkspace((current) => ({ ...current, activeProjectId: next.id, projects: [...current.projects, next] }));
     setSelectedId(next.tasks[0].id); setProjectsOpen(false); setCalendarStart(mondayOfWeek(next.statusDate));
   };
   const duplicateProject = () => {
     const copy = { ...project, id: crypto.randomUUID(), projectName: `${project.projectName} (kopio)`, tasks: project.tasks.map((task) => ({ ...task, id: crypto.randomUUID() })), snapshots: [] };
-    setWorkspace((current) => ({ activeProjectId: copy.id, projects: [...current.projects, copy] }));
+    commitWorkspace((current) => ({ ...current, activeProjectId: copy.id, projects: [...current.projects, copy] }));
     setSelectedId(copy.tasks[0].id); setProjectsOpen(false);
   };
   const deleteProject = () => {
     if (workspace.projects.length === 1 || !window.confirm(`Poistetaanko projekti ${project.projectName}?`)) return;
     const remaining = workspace.projects.filter((item) => item.id !== project.id);
-    setWorkspace({ activeProjectId: remaining[0].id, projects: remaining }); setSelectedId(remaining[0].tasks[0]?.id ?? "");
+    commitWorkspace({ ...workspace, activeProjectId: remaining[0].id, projects: remaining }); setSelectedId(remaining[0].tasks[0]?.id ?? "");
   };
 
   const exportWorkspace = () => {
@@ -204,6 +244,8 @@ export function ScheduleApp() {
         <div className="brand-block"><strong>Aikataulu</strong><span>{project.projectNumber ? `${project.projectNumber} · ` : ""}{project.projectName}</span></div>
         <div className="toolbar">
           <button onClick={() => setProjectsOpen(true)}>Projektit</button>
+          <button onClick={undo} disabled={!undoStack.length}>Kumoa</button>
+          <button onClick={redo} disabled={!redoStack.length}>Tee uudelleen</button>
           <button onClick={() => addTask()}>+ Tehtävä</button>
           <button onClick={() => addTask("milestone")}>◇ Välitavoite</button>
           <button onClick={duplicateTask}>Kopioi</button><button onClick={deleteTask}>Poista</button>
@@ -214,6 +256,7 @@ export function ScheduleApp() {
           <button onClick={() => setSnapshotsOpen(true)}>Historia</button>
           <button onClick={() => setCalendarOpen(true)}>Kalenteri</button>
           <button onClick={() => setPlrOpen(true)}>Tocoman-tuonti</button>
+          <button onClick={() => setPrintOpen(true)}>Tulostusasetukset</button>
           <button onClick={() => window.print()}>Tulosta / PDF</button>
         </div>
       </header>
@@ -230,24 +273,24 @@ export function ScheduleApp() {
       </section>
 
       <section className="print-heading"><div>{project.projectName}</div><div>{project.scheduleName}</div></section>
-      <section className="schedule-legend">
+      {printSettings.showLegend && <section className="schedule-legend">
         <span><i className="legend-baseline" />Tavoite</span>
         <span><i className="legend-plan" />Suunnitelma / jäljellä</span>
         <span><i className="legend-actual" />Toteutuma</span>
         <span><i className="legend-status" />Seurantahetki</span>
-      </section>
+      </section>}
 
-      <main className="schedule-grid">
+      <main className={`schedule-grid ${printSettings.fitToOnePage ? "fit-one-page" : ""}`}>
         <div className="table-pane">
-          <table><thead><tr><th className="select-column"></th><th className="wbs-column">Hier</th><th>Työvaihe</th><th className="duration-column">Kesto</th><th className="date-column">Alku</th><th className="date-column">Loppu</th><th className="progress-column">Valmis %</th></tr></thead>
+          <table><thead><tr><th className="select-column"></th>{printSettings.showWbs && <th className="wbs-column">Hier</th>}<th>Työvaihe</th>{printSettings.showDuration && <th className="duration-column">Kesto</th>}{printSettings.showStart && <th className="date-column">Alku</th>}{printSettings.showEnd && <th className="date-column">Loppu</th>}{printSettings.showProgress && <th className="progress-column">Valmis %</th>}</tr></thead>
             <tbody>{tasks.map((task, index) => (
               <tr key={task.id} className={`${task.kind === "summary" ? "summary-row" : ""} ${task.kind === "milestone" ? "milestone-row" : ""} ${task.id === selectedId ? "selected-row" : ""}`} onClick={() => setSelectedId(task.id)}>
-                <td><input type="radio" readOnly checked={task.id === selectedId} /></td><td>{buildWbs(tasks, index)}</td>
+                <td><input type="radio" readOnly checked={task.id === selectedId} /></td>{printSettings.showWbs && <td>{buildWbs(tasks, index)}</td>}
                 <td><input className="task-name-input" style={{ paddingLeft: 8 + task.level * 18 }} value={task.name} onChange={(e) => updateTask(task.id, { name: e.target.value })} /></td>
-                <td><input type="number" min={1} disabled={task.kind === "summary"} value={task.duration} onChange={(e) => updateTask(task.id, { duration: Math.max(1, Number(e.target.value)) })} /></td>
-                <td><input type="date" disabled={task.kind === "summary"} value={task.start} onChange={(e) => updateTask(task.id, { start: e.target.value })} /></td>
-                <td><input type="date" readOnly value={workdayEnd(task.start, task.duration, workdays, holidays)} /></td>
-                <td><input type="number" min={0} max={100} disabled={task.kind === "summary"} value={task.progress} onChange={(e) => updateTask(task.id, { progress: clamp(Number(e.target.value), 0, 100) })} /></td>
+                {printSettings.showDuration && <td><input type="number" min={1} disabled={task.kind === "summary"} value={task.duration} onChange={(e) => updateTask(task.id, { duration: Math.max(1, Number(e.target.value)) })} /></td>}
+                {printSettings.showStart && <td><input type="date" disabled={task.kind === "summary"} value={task.start} onChange={(e) => updateTask(task.id, { start: e.target.value })} /></td>}
+                {printSettings.showEnd && <td><input type="date" readOnly value={workdayEnd(task.start, task.duration, workdays, holidays)} /></td>}
+                {printSettings.showProgress && <td><input type="number" min={0} max={100} disabled={task.kind === "summary"} value={task.progress} onChange={(e) => updateTask(task.id, { progress: clamp(Number(e.target.value), 0, 100) })} /></td>}
               </tr>
             ))}</tbody>
           </table>
@@ -327,6 +370,24 @@ export function ScheduleApp() {
         <div className="calendar-panel"><h3>Työviikko</h3><div className="weekday-list">{["Su","Ma","Ti","Ke","To","Pe","La"].map((name, day) => <label key={day}><input type="checkbox" checked={project.calendar.workdays.includes(day)} onChange={(e) => updateProject({ calendar: { ...project.calendar, workdays: e.target.checked ? [...project.calendar.workdays, day].sort() : project.calendar.workdays.filter((value) => value !== day) } })} />{name}</label>)}</div>
           <h3>Vapaapäivä</h3><div className="inline-form"><input id="holiday-date" type="date" /><button onClick={() => { const input = document.querySelector<HTMLInputElement>("#holiday-date"); if (input?.value && !project.calendar.holidays.includes(input.value)) updateProject({ calendar: { ...project.calendar, holidays: [...project.calendar.holidays, input.value].sort() } }); }}>Lisää</button></div>
           <div className="holiday-list">{project.calendar.holidays.map((date) => <span key={date}>{date}<button onClick={() => updateProject({ calendar: { ...project.calendar, holidays: project.calendar.holidays.filter((item) => item !== date) } })}>×</button></span>)}</div>
+        </div>
+      </aside></div>}
+
+      {printOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer compact-drawer"><header><div><strong>Tulostusasetukset</strong><span>A4- ja A3-seurantatuloste</span></div><button onClick={() => setPrintOpen(false)}>×</button></header>
+        <div className="print-settings-panel">
+          <label><input type="checkbox" checked={printSettings.showWbs} onChange={(e) => updatePrintSettings({ showWbs: e.target.checked })} /> Hierarkianumerot</label>
+          <label><input type="checkbox" checked={printSettings.showDuration} onChange={(e) => updatePrintSettings({ showDuration: e.target.checked })} /> Kesto</label>
+          <label><input type="checkbox" checked={printSettings.showStart} onChange={(e) => updatePrintSettings({ showStart: e.target.checked })} /> Aloituspäivä</label>
+          <label><input type="checkbox" checked={printSettings.showEnd} onChange={(e) => updatePrintSettings({ showEnd: e.target.checked })} /> Lopetuspäivä</label>
+          <label><input type="checkbox" checked={printSettings.showProgress} onChange={(e) => updatePrintSettings({ showProgress: e.target.checked })} /> Valmiusaste</label>
+          <label><input type="checkbox" checked={printSettings.showLegend} onChange={(e) => updatePrintSettings({ showLegend: e.target.checked })} /> Selite</label>
+          <label><input type="checkbox" checked={printSettings.fitToOnePage} onChange={(e) => updatePrintSettings({ fitToOnePage: e.target.checked })} /> Sovita yhdelle sivulle</label>
+          <div className="print-preview-card">
+            <strong>{project.paperSize} vaaka</strong>
+            <span>{project.projectName}</span>
+            <span>{tasks.length} riviä · {WEEKS_VISIBLE} viikkoa</span>
+          </div>
+          <button className="primary" onClick={() => { setPrintOpen(false); setTimeout(() => window.print(), 50); }}>Avaa tulostus / PDF</button>
         </div>
       </aside></div>}
 

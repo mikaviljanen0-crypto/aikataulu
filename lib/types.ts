@@ -49,7 +49,18 @@ export interface ProjectState {
   snapshots: TrackingSnapshot[];
 }
 
+export interface PrintSettings {
+  showWbs: boolean;
+  showDuration: boolean;
+  showStart: boolean;
+  showEnd: boolean;
+  showProgress: boolean;
+  showLegend: boolean;
+  fitToOnePage: boolean;
+}
+
 export interface WorkspaceState {
   activeProjectId: string;
   projects: ProjectState[];
+  printSettings?: PrintSettings;
 }

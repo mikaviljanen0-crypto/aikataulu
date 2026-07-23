@@ -1,36 +1,34 @@
-# Aikatauluohjelmisto v0.6
+# Aikatauluohjelmisto v0.7
 
 Rakennusalan jana-aikatauluohjelmiston kehitysversio.
 
-## Uutta v0.6-versiossa
+## Uutta v0.7-versiossa
 
-- useiden Tocoman `.plr` -tiedostojen yhtäaikainen vertailu
-- SHA-256-tarkistussumma jokaiselle tiedostolle
-- tiedostokokojen ja OLE-tunnistuksen vertailu
-- muuttuneiden tavujen lukumäärä
-- suurimpien muuttuneiden tavuvälien paikantaminen heksadesimaaliosoitteilla
-- lisättyjen ja poistuneiden ASCII-/UTF-16-tekstijonojen vertailu
-- vertailu toimii paikallisesti selaimessa eikä muuta alkuperäisiä tiedostoja
+- kumoa ja tee uudelleen -toiminnot
+- enintään 40 viimeisimmän muutoksen paikallinen muutoshistoria
+- erillinen tulostusasetusten paneeli
+- tulostettavien taulukkosarakkeiden valinta
+- selitteen näyttäminen tai piilottaminen
+- yhdelle sivulle sovittaminen
+- A4- ja A3-vaakatulostuksen esikatselutiedot
+- tulostukseen tiivistetyt rivi- ja tekstikoot
 
-## Todellisesta testiaineistosta havaittu
+## Tulostuksen tavoite
 
-Tiedostojen `1.plr–7.plr` koot jakautuvat kolmeen ryhmään:
+Työmaakokoukseen vietävä seurantatuloste voidaan pitää tiiviinä:
 
-- 1–3: 86 528 tavua
-- 4–6: 80 896 tavua
-- 7: 81 920 tavua
+- projekti ja aikataulun nimi
+- valitut taulukkosarakkeet
+- tavoitejana
+- suunnitelma / jäljellä
+- toteutuma
+- seurantahetki
+- päivitetty-päivämäärä
 
-Tämä viittaa siihen, että tiedostoissa on sekä kenttäkohtaisia muutoksia että kokonaisia rakenteellisia muutoksia. v0.6 auttaa erottamaan nämä toisistaan ennen varsinaisen tuontiparserin tekemistä.
+## Seuraavat pääkohteet
 
-## Seuraava vaihe
-
-Vertailutulosten perusteella rakennetaan kenttäkartta:
-
-1. tehtävän nimi
-2. aloituspäivä
-3. kesto
-4. hierarkiataso
-5. janan väri ja tyyli
-6. tavoite- ja toteumatieto
-
-Kun kenttäkartta on riittävän luotettava, ensimmäinen `.plr`-tehtävien tuonti lisätään esikatselutilassa.
+1. oikea tulostusalueen päivämäärärajaus
+2. automaattinen sivutus pitkille aikatauluille
+3. Tocoman-tuonnin kenttäkartan tarkentaminen
+4. tavoitteen ja toteuman selkeämpi tilanneviiva
+5. projektien tallennus palvelintietokantaan
