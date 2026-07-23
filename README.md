@@ -1,19 +1,27 @@
-# Aikatauluohjelmisto v0.4
+# Aikatauluohjelmisto v0.5
 
 Rakennusalan jana-aikatauluohjelmiston kehitysversio.
 
-## Uutta v0.4-versiossa
+## Uutta v0.5-versiossa
 
-- useiden projektien hallinta samassa selaimessa
-- uuden tyhjän projektin perustaminen
-- projektin kopiointi ja poistaminen
-- projektinumero
-- koko työtilan varmuuskopiointi JSON-tiedostoksi
-- projektikohtainen työviikko
-- projektikohtaiset vapaapäivät
-- vapaapäivät huomioiva tehtävän loppupäivän laskenta
-- projektin vaihto sivupaneelista
-- kalenterin siirto viiden viikon jaksoissa
+- Tocoman `.plr` -tiedostojen selaimessa toimiva, turvallinen analyysityökalu
+- OLE / Microsoft Compound Document -tiedostomuodon tunnistus
+- Tocomanin versio- ja tietovirtanimien poiminta
+- tiedoston sisältämien luettavien tekstinäytteiden tarkastelu
+- toteutuma näytetään omana vihreänä jananaan
+- tavoite, suunnitelma/jäljellä, toteutuma ja seurantahetki näkyvät selkeässä legendassa
+- janan siirto ja venytys palautettu Gantt-näkymään
+- projektikalenteri huomioidaan myös hiirellä siirrossa
+
+## Tocoman-tuonnin tila
+
+v0.5 ei vielä tuo tehtäviä automaattisesti. Se tekee ensimmäisen teknisen analyysin `.plr`-tiedostosta ja näyttää:
+
+- tunnistetaanko tiedosto OLE-säiliöksi
+- mitä Tocoman-/Pluto-versioviitteitä löytyy
+- mitä luettavia tietovirtojen nimiä ja tekstinäytteitä tiedostossa on
+
+Seuraava vaihe on vertailla testitiedostoja 1–7 ja paikantaa tehtävänimen, aloituspäivän, keston, hierarkian ja värin binäärirakenteet.
 
 ## Käynnistys kehityskoneella
 
@@ -21,13 +29,3 @@ Rakennusalan jana-aikatauluohjelmiston kehitysversio.
 npm install
 npm run dev
 ```
-
-Komennot suoritetaan projektikansiossa Visual Studio Coden terminaalissa. Tätä ei tarvitse tehdä ennen Vercel-julkaisua tai paikallista testausta.
-
-## Seuraavat pääkohteet
-
-1. Tocoman `.plr` -tuonnin erillinen analyysityökalu
-2. tavoite-, toteuma- ja jäljellä-janan tarkempi tulostus
-3. tulostusalueen esikatselu ja automaattinen A4/A3-sovitus
-4. työvaiheiden raahaaminen taulukossa
-5. suomalaiset liikkuvat pyhäpäivät

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { addCalendarDays, addWorkdays, daysBetween, formatDate, isoWeek, mondayOfWeek, monthName, parseDate, workdayEnd } from "../lib/calendar";
 import { initialWorkspace } from "../lib/sample";
 import type { ProjectState, Task, TaskKind, WorkspaceState } from "../lib/types";
+import { inspectPlr, type PlrReport } from "../lib/plrInspector";
 
 const STORAGE_KEY = "aikataulu-v0.4";
 const PX_PER_DAY = 11;
@@ -62,9 +63,12 @@ export function ScheduleApp() {
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [plrOpen, setPlrOpen] = useState(false);
+  const [plrReport, setPlrReport] = useState<PlrReport | null>(null);
   const [savedAt, setSavedAt] = useState("");
   const [calendarStart, setCalendarStart] = useState(mondayOfWeek("2026-07-06"));
   const importRef = useRef<HTMLInputElement>(null);
+  const plrRef = useRef<HTMLInputElement>(null);
 
   const project = workspace.projects.find((item) => item.id === workspace.activeProjectId) ?? workspace.projects[0];
 
@@ -184,6 +188,11 @@ export function ScheduleApp() {
 
   const startOffset = (start: string) => daysBetween(calendarStart, start) * PX_PER_DAY;
   const durationWidth = (task: Pick<Task, "start" | "duration">) => Math.max(PX_PER_DAY, (daysBetween(task.start, workdayEnd(task.start, task.duration, workdays, holidays)) + 1) * PX_PER_DAY);
+  const actualWidth = (task: Task) => {
+    if (!task.actualStart) return 0;
+    if (task.actualEnd) return Math.max(PX_PER_DAY, (daysBetween(task.actualStart, task.actualEnd) + 1) * PX_PER_DAY);
+    return Math.max(PX_PER_DAY, durationWidth(task) * task.progress / 100);
+  };
 
   return (
     <div className="app-shell">
@@ -200,6 +209,7 @@ export function ScheduleApp() {
           <button className="primary" onClick={() => setTrackingOpen(true)}>Toteumaseuranta</button>
           <button onClick={() => setSnapshotsOpen(true)}>Historia</button>
           <button onClick={() => setCalendarOpen(true)}>Kalenteri</button>
+          <button onClick={() => setPlrOpen(true)}>Tocoman-tuonti</button>
           <button onClick={() => window.print()}>Tulosta / PDF</button>
         </div>
       </header>
@@ -216,6 +226,12 @@ export function ScheduleApp() {
       </section>
 
       <section className="print-heading"><div>{project.projectName}</div><div>{project.scheduleName}</div></section>
+      <section className="schedule-legend">
+        <span><i className="legend-baseline" />Tavoite</span>
+        <span><i className="legend-plan" />Suunnitelma / jäljellä</span>
+        <span><i className="legend-actual" />Toteutuma</span>
+        <span><i className="legend-status" />Seurantahetki</span>
+      </section>
 
       <main className="schedule-grid">
         <div className="table-pane">
@@ -241,10 +257,40 @@ export function ScheduleApp() {
               return <div className="gantt-row" style={{ top: index * ROW_HEIGHT }} key={task.id}>
                 {baseline && <div className="baseline-bar" style={{ left: startOffset(baseline.start), width: durationWidth({ start: baseline.start, duration: baseline.duration }) }} />}
                 {task.kind === "milestone" ? <div className="milestone" style={{ left }}>◆</div> :
-                  <div className={`task-bar ${task.kind === "summary" ? "summary-bar" : ""}`} style={{ left, width }}>
-                    <span>{buildWbs(tasks, index)}</span><div className="actual-progress" style={{ width: `${task.progress}%` }} />
+                  <div
+                    className={`task-bar ${task.kind === "summary" ? "summary-bar" : ""}`}
+                    style={{ left, width }}
+                    onPointerDown={(event) => {
+                      if (task.kind === "summary") return;
+                      const element = event.currentTarget;
+                      const startX = event.clientX;
+                      const resize = (event.target as HTMLElement).classList.contains("resize-handle");
+                      const originalLeft = left;
+                      const originalWidth = width;
+                      element.setPointerCapture(event.pointerId);
+                      const move = (moveEvent: PointerEvent) => {
+                        const delta = Math.round((moveEvent.clientX - startX) / PX_PER_DAY);
+                        if (resize) element.style.width = `${Math.max(PX_PER_DAY, originalWidth + delta * PX_PER_DAY)}px`;
+                        else element.style.left = `${originalLeft + delta * PX_PER_DAY}px`;
+                      };
+                      const up = (upEvent: PointerEvent) => {
+                        const delta = Math.round((upEvent.clientX - startX) / PX_PER_DAY);
+                        element.removeEventListener("pointermove", move);
+                        element.removeEventListener("pointerup", up);
+                        if (resize) updateTask(task.id, { duration: Math.max(1, task.duration + delta) });
+                        else updateTask(task.id, { start: addWorkdays(task.start, delta, workdays, holidays) });
+                      };
+                      element.addEventListener("pointermove", move);
+                      element.addEventListener("pointerup", up);
+                    }}
+                  >
+                    <span>{buildWbs(tasks, index)}</span>
+                    <div className="planned-fill" />
                     {task.kind !== "summary" && <button className="resize-handle" aria-label="Muuta kestoa" />}
                   </div>}
+                {task.actualStart && task.kind !== "summary" && (
+                  <div className="actual-bar" style={{ left: startOffset(task.actualStart), width: actualWidth(task) }} title={`Toteutuma ${task.progress}%`} />
+                )}
               </div>;
             })}
           </div>
@@ -277,6 +323,27 @@ export function ScheduleApp() {
         <div className="calendar-panel"><h3>Työviikko</h3><div className="weekday-list">{["Su","Ma","Ti","Ke","To","Pe","La"].map((name, day) => <label key={day}><input type="checkbox" checked={project.calendar.workdays.includes(day)} onChange={(e) => updateProject({ calendar: { ...project.calendar, workdays: e.target.checked ? [...project.calendar.workdays, day].sort() : project.calendar.workdays.filter((value) => value !== day) } })} />{name}</label>)}</div>
           <h3>Vapaapäivä</h3><div className="inline-form"><input id="holiday-date" type="date" /><button onClick={() => { const input = document.querySelector<HTMLInputElement>("#holiday-date"); if (input?.value && !project.calendar.holidays.includes(input.value)) updateProject({ calendar: { ...project.calendar, holidays: [...project.calendar.holidays, input.value].sort() } }); }}>Lisää</button></div>
           <div className="holiday-list">{project.calendar.holidays.map((date) => <span key={date}>{date}<button onClick={() => updateProject({ calendar: { ...project.calendar, holidays: project.calendar.holidays.filter((item) => item !== date) } })}>×</button></span>)}</div>
+        </div>
+      </aside></div>}
+
+      {plrOpen && <div className="drawer-backdrop no-print"><aside className="tracking-drawer plr-drawer"><header><div><strong>Tocoman .plr -analyysi</strong><span>Ensimmäinen vaihe vanhojen aikataulujen tuontiin</span></div><button onClick={() => setPlrOpen(false)}>×</button></header>
+        <div className="plr-panel">
+          <p>Valitse Tocomanin <code>.plr</code>-tiedosto. Analyysi tehdään vain selaimessa, eikä tiedostoa muuteta.</p>
+          <button className="primary" onClick={() => plrRef.current?.click()}>Valitse .plr-tiedosto</button>
+          <input ref={plrRef} hidden type="file" accept=".plr,application/octet-stream" onChange={async (event) => {
+            const file = event.target.files?.[0];
+            if (file) setPlrReport(await inspectPlr(file));
+          }} />
+          {plrReport && <div className="plr-report">
+            <h3>{plrReport.fileName}</h3>
+            <dl><dt>Koko</dt><dd>{Math.round(plrReport.fileSize / 1024)} kt</dd><dt>OLE-säiliö</dt><dd>{plrReport.isCompoundFile ? "Kyllä" : "Ei"}</dd></dl>
+            <h4>Tunnistetut versio- ja tietovirrat</h4>
+            <ul>{plrReport.probableVersionNames.length ? plrReport.probableVersionNames.map((value) => <li key={value}>{value}</li>) : <li>Ei vielä tunnistettuja nimiä.</li>}</ul>
+            <h4>Tekstinäytteet</h4>
+            <div className="string-samples">{plrReport.textSamples.slice(0, 35).map((value, index) => <code key={`${value}-${index}`}>{value}</code>)}</div>
+            <h4>Johtopäätökset</h4>
+            <ul>{plrReport.notes.map((value) => <li key={value}>{value}</li>)}</ul>
+          </div>}
         </div>
       </aside></div>}
     </div>
