@@ -1,43 +1,37 @@
-# Aikatauluohjelmisto v1.0
+# Aikatauluohjelmisto v1.1
 
-Ensimmäinen kokonainen käyttölogiikan versio rakennusalan jana- ja viikkoaikataulusta.
+Rakennusalan yleis- ja viikkoaikataulun kehitysversio.
 
-## Uutta v1.0-versiossa
+## Uutta v1.1-versiossa
 
-- erillinen Yleisaikataulu- ja Viikkoaikataulu-näkymä
-- viikkoaikataulun luominen valitun viikon yleisaikataulutehtävistä
-- työtehtävien tarkentaminen viikkotasolle
-- viikon päivä, rakennus/alue, vastuuhenkilö ja tavoite
-- tehtävän tila:
-  - Suunniteltu
-  - Käynnissä
-  - Valmis
-  - Estynyt
-- vapaat huomautukset
-- uusien viikkotehtävien lisääminen käsin
-- viikkotehtävien poistaminen
-- edellisen ja seuraavan viikon selaaminen
-- A4-vaakatulostukseen sopiva viikkoaikataulutaulukko
-- valmiiden ja estyneiden tehtävien yhteenveto
+### Yksinkertaiset riippuvuudet
 
-## Viikkoaikataulun periaate
+- työvaiheelle voidaan valita edeltävä työvaihe
+- riippuvuustyyppi on ensimmäisessä vaiheessa loppu–alku
+- työvaiheelle voidaan antaa positiivinen tai negatiivinen viive työpäivinä
+- `Laske riippuvuudet` ajoittaa tehtävät edeltävien tehtävien perusteella
+- ohjelma tunnistaa riippuvuuskehän eikä jää laskemaan loputtomasti
 
-Yleisaikataulu pysyy työmaan pääaikatauluna. Viikkoaikataulu on siitä erillinen, tarkempi suunnitelma.
+Riippuvuuksia ei lasketa automaattisesti jokaisella muutoksella. Työnjohtaja voi muokata aikataulua vapaasti ja suorittaa laskennan halutessaan.
 
-Kun viikkoaikataulu luodaan, ohjelma kopioi lähtöriveiksi työvaiheet, jotka osuvat valitulle viikolle. Tämän jälkeen työnjohtaja voi:
+### Viikkoaikataulun jatkokäyttö
 
-- jakaa työn pienempiin tehtäviin
-- lisätä viikon konkreettisen tavoitteen
-- nimetä vastuuhenkilön
-- merkitä esteet
-- lisätä tehtäviä, joita yleisaikataulussa ei ole
+- koko viikkoaikataulu voidaan kopioida seuraavalle viikolle
+- vain keskeneräiset tehtävät voidaan siirtää seuraavalle viikolle
+- siirretyt tehtävät merkitään huomautuksella
+- viikkoaikataulun tilat voidaan päivittää yleisaikataulun toteumaan
+- yleisaikatauluun yhdistetty viikkotehtävä merkitään näkyvästi
 
-Muutokset viikkoaikataulussa eivät muuta yleisaikataulun rakennetta.
+## Toteuman päivitys viikkoaikataulusta
+
+Kun kaikki samaan yleisaikataulutehtävään liittyvät viikkotehtävät ovat valmiita, yleisaikataulun valmiusasteeksi asetetaan 100 %.
+
+Jos vähintään yksi viikkotehtävä on käynnissä tai valmis, yleisaikataulun valmiusastetta nostetaan vähintään 25 prosenttiin. Tätä voidaan myöhemmin tarkentaa määrien ja toteutuneiden tuntien perusteella.
 
 ## Seuraavat pääkohteet
 
-1. projektien palvelintallennus ja kirjautuminen
-2. viikkoaikataulun kopiointi seuraavalle viikolle
-3. keskeneräisten viikkotehtävien automaattinen siirto
-4. seurantatulosteiden versioarkisto
-5. Tocoman-tuonnin ensimmäinen esikatselu
+1. kirjautuminen ja projektien palvelintallennus
+2. käyttäjäroolit
+3. seurantatulosteiden pysyvä versioarkisto
+4. Tocoman-tuonnin ensimmäinen tehtäväesikatselu
+5. riippuvuuksien näyttäminen nuolina Gantt-janalla

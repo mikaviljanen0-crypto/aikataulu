@@ -18,6 +18,8 @@ export interface Task {
   color?: string;
   location?: string;
   responsible?: string;
+  predecessorId?: string;
+  lagDays?: number;
   actualStart?: string;
   actualEnd?: string;
   forecastEnd?: string;

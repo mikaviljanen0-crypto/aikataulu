@@ -100,6 +100,7 @@ export function ScheduleApp() {
   const [searchText, setSearchText] = useState("");
   const [locationFilter, setLocationFilter] = useState("all");
   const [collapsedIds, setCollapsedIds] = useState<string[]>([]);
+  const [dependencyMessage, setDependencyMessage] = useState("");
   const [savedAt, setSavedAt] = useState("");
   const [calendarStart, setCalendarStart] = useState(mondayOfWeek("2026-07-06"));
   const importRef = useRef<HTMLInputElement>(null);
@@ -306,6 +307,48 @@ export function ScheduleApp() {
     } catch { window.alert("Työtilatiedostoa ei voitu avata."); }
   };
 
+  const scheduleDependencies = () => {
+    const taskMap = new Map(project.tasks.map((task) => [task.id, { ...task }]));
+    const visiting = new Set<string>();
+    const visited = new Set<string>();
+    let changed = 0;
+    const errors: string[] = [];
+
+    const resolve = (taskId: string): void => {
+      if (visited.has(taskId)) return;
+      if (visiting.has(taskId)) {
+        errors.push("Riippuvuuksissa on kehä.");
+        return;
+      }
+      const task = taskMap.get(taskId);
+      if (!task || !task.predecessorId) {
+        visited.add(taskId);
+        return;
+      }
+
+      visiting.add(taskId);
+      resolve(task.predecessorId);
+      const predecessor = taskMap.get(task.predecessorId);
+      if (!predecessor) {
+        errors.push(`Edeltävää tehtävää ei löytynyt: ${task.name}`);
+      } else {
+        const predecessorEnd = workdayEnd(predecessor.start, predecessor.duration, workdays, holidays);
+        const requiredStart = addWorkdays(predecessorEnd, 1 + (task.lagDays ?? 0), workdays, holidays);
+        if (task.start !== requiredStart) {
+          task.start = requiredStart;
+          changed += 1;
+        }
+      }
+      visiting.delete(taskId);
+      visited.add(taskId);
+    };
+
+    project.tasks.forEach((task) => resolve(task.id));
+    updateProject({ tasks: project.tasks.map((task) => taskMap.get(task.id) ?? task) });
+    setDependencyMessage(errors.length ? errors.join(" ") : `${changed} tehtävän aloitus päivitettiin.`);
+    window.setTimeout(() => setDependencyMessage(""), 5000);
+  };
+
   const weeklyPlans = project.weeklyPlans ?? [];
   const activeWeeklyPlan = weeklyPlans.find((plan) => plan.weekStart === weeklyStart);
 
@@ -379,6 +422,62 @@ export function ScheduleApp() {
     updateWeeklyPlan({ items: activeWeeklyPlan.items.filter((item) => item.id !== itemId) });
   };
 
+  const copyWeeklyPlanToNextWeek = (unfinishedOnly: boolean) => {
+    if (!activeWeeklyPlan) return;
+    const nextStart = addCalendarDays(activeWeeklyPlan.weekStart, 7);
+    const existing = weeklyPlans.find((plan) => plan.weekStart === nextStart);
+    if (existing && !window.confirm("Seuraavalle viikolle on jo aikataulu. Korvataanko se?")) return;
+
+    const sourceItems = unfinishedOnly
+      ? activeWeeklyPlan.items.filter((item) => item.status !== "done")
+      : activeWeeklyPlan.items;
+
+    const copiedItems = sourceItems.map((item) => ({
+      ...item,
+      id: crypto.randomUUID(),
+      day: nextStart,
+      status: item.status === "blocked" ? "blocked" as const : "planned" as const,
+      note: unfinishedOnly
+        ? [item.note, "Siirretty edelliseltä viikolta"].filter(Boolean).join(" – ")
+        : item.note
+    }));
+
+    const nextPlan: WeeklyPlan = {
+      id: crypto.randomUUID(),
+      weekStart: nextStart,
+      title: `Viikkoaikataulu vko ${isoWeek(parseDate(nextStart))}`,
+      createdAt: new Date().toISOString(),
+      items: copiedItems
+    };
+
+    updateProject({
+      weeklyPlans: [...weeklyPlans.filter((plan) => plan.weekStart !== nextStart), nextPlan]
+    });
+    setWeeklyStart(nextStart);
+  };
+
+  const updateGeneralFromWeekly = () => {
+    if (!activeWeeklyPlan) return;
+    const statuses = new Map<string, WeeklyPlanStatus[]>();
+    activeWeeklyPlan.items.forEach((item) => {
+      if (!item.sourceTaskId) return;
+      const list = statuses.get(item.sourceTaskId) ?? [];
+      list.push(item.status);
+      statuses.set(item.sourceTaskId, list);
+    });
+
+    const nextTasks = project.tasks.map((task) => {
+      const taskStatuses = statuses.get(task.id);
+      if (!taskStatuses?.length) return task;
+      if (taskStatuses.every((status) => status === "done")) return { ...task, progress: 100 };
+      if (taskStatuses.some((status) => status === "in-progress" || status === "done")) {
+        return { ...task, progress: Math.max(task.progress, 25) };
+      }
+      return task;
+    });
+    updateProject({ tasks: nextTasks });
+  };
+
   const statusLabel = (status: WeeklyPlanStatus) => ({
     planned: "Suunniteltu",
     "in-progress": "Käynnissä",
@@ -410,6 +509,7 @@ export function ScheduleApp() {
           {viewMode === "general" && (<button onClick={() => changeIndent(1)}>Sisennä</button>)}{viewMode === "general" && (<button onClick={() => changeIndent(-1)}>Ulonna</button>)}
           {viewMode === "general" && (<button onClick={() => moveRow(-1)}>↑</button>)}{viewMode === "general" && (<button onClick={() => moveRow(1)}>↓</button>)}
           {viewMode === "general" && (<button onClick={saveBaseline}>Tallenna tavoite</button>)}
+          {viewMode === "general" && (<button onClick={scheduleDependencies}>Laske riippuvuudet</button>)}
           {viewMode === "general" && (<button className="primary" onClick={() => setTrackingOpen(true)}>Toteumaseuranta</button>)}
           {viewMode === "general" && (<button onClick={() => setSnapshotsOpen(true)}>Historia</button>)}
           {viewMode === "general" && (<button onClick={() => setCalendarOpen(true)}>Kalenteri</button>)}
@@ -430,6 +530,8 @@ export function ScheduleApp() {
         <span className="save-state">Tallennettu {savedAt}</span>
       </section>
 
+      {dependencyMessage && <div className="dependency-message no-print">{dependencyMessage}</div>}
+
       {viewMode === "weekly" && <section className="weekly-toolbar no-print">
         <button onClick={() => setWeeklyStart(addCalendarDays(weeklyStart, -7))}>← Edellinen viikko</button>
         <label>Viikon maanantai<input type="date" value={weeklyStart} onChange={(e) => setWeeklyStart(mondayOfWeek(e.target.value))} /></label>
@@ -437,6 +539,9 @@ export function ScheduleApp() {
         <button onClick={() => setWeeklyStart(addCalendarDays(weeklyStart, 7))}>Seuraava viikko →</button>
         {!activeWeeklyPlan && <button className="primary" onClick={createWeeklyPlan}>Luo viikkoaikataulu yleisaikataulusta</button>}
         {activeWeeklyPlan && <button onClick={addWeeklyItem}>+ Lisää viikon tehtävä</button>}
+        {activeWeeklyPlan && <button onClick={() => copyWeeklyPlanToNextWeek(false)}>Kopioi seuraavalle viikolle</button>}
+        {activeWeeklyPlan && <button onClick={() => copyWeeklyPlanToNextWeek(true)}>Siirrä keskeneräiset</button>}
+        {activeWeeklyPlan && <button onClick={updateGeneralFromWeekly}>Päivitä yleisaikataulun toteuma</button>}
         <span>vko {isoWeek(parseDate(weeklyStart))}</span>
       </section>}
 
@@ -460,7 +565,7 @@ export function ScheduleApp() {
 
 {viewMode === "general" &&       <main className={`schedule-grid ${printSettings.fitToOnePage ? "fit-one-page" : ""} ${printSettings.pageMode === "multi-page" ? "multi-page-print" : ""} ${printSettings.repeatHeader ? "repeat-print-header" : ""}`}>
         <div className="table-pane">
-          <table><thead><tr><th className="select-column"></th>{printSettings.showWbs && <th className="wbs-column">Hier</th>}<th>Työvaihe</th><th className="location-column">Rakennus / alue</th><th className="responsible-column">Vastuu</th>{printSettings.showDuration && <th className="duration-column">Kesto</th>}{printSettings.showStart && <th className="date-column">Alku</th>}{printSettings.showEnd && <th className="date-column">Loppu</th>}{printSettings.showProgress && <th className="progress-column">Valmis %</th>}</tr></thead>
+          <table><thead><tr><th className="select-column"></th>{printSettings.showWbs && <th className="wbs-column">Hier</th>}<th>Työvaihe</th><th className="location-column">Rakennus / alue</th><th className="responsible-column">Vastuu</th><th className="predecessor-column">Edeltävä</th><th className="lag-column">Viive</th>{printSettings.showDuration && <th className="duration-column">Kesto</th>}{printSettings.showStart && <th className="date-column">Alku</th>}{printSettings.showEnd && <th className="date-column">Loppu</th>}{printSettings.showProgress && <th className="progress-column">Valmis %</th>}</tr></thead>
             <tbody>{visibleTasks.map((task) => {
               const index = tasks.findIndex((item) => item.id === task.id);
               return (
@@ -472,6 +577,11 @@ export function ScheduleApp() {
                 </td>
                 <td><input value={task.location ?? ""} onChange={(e) => updateTask(task.id, { location: e.target.value })} /></td>
                 <td><input value={task.responsible ?? ""} onChange={(e) => updateTask(task.id, { responsible: e.target.value })} /></td>
+                <td><select value={task.predecessorId ?? ""} disabled={task.kind === "summary"} onChange={(e) => updateTask(task.id, { predecessorId: e.target.value || undefined })}>
+                  <option value="">–</option>
+                  {tasks.filter((candidate) => candidate.id !== task.id && candidate.kind !== "summary").map((candidate, candidateIndex) => <option key={candidate.id} value={candidate.id}>{buildWbs(tasks, candidateIndex)} {candidate.name}</option>)}
+                </select></td>
+                <td><input type="number" disabled={!task.predecessorId || task.kind === "summary"} value={task.lagDays ?? 0} onChange={(e) => updateTask(task.id, { lagDays: Number(e.target.value) })} /></td>
                 {printSettings.showDuration && <td><input type="number" min={1} disabled={task.kind === "summary"} value={task.duration} onChange={(e) => updateTask(task.id, { duration: Math.max(1, Number(e.target.value)) })} /></td>}
                 {printSettings.showStart && <td><input type="date" disabled={task.kind === "summary"} value={task.start} onChange={(e) => updateTask(task.id, { start: e.target.value })} /></td>}
                 {printSettings.showEnd && <td><input type="date" readOnly value={workdayEnd(task.start, task.duration, workdays, holidays)} /></td>}
@@ -552,7 +662,7 @@ export function ScheduleApp() {
                   <td><select value={item.day} onChange={(e) => updateWeeklyItem(item.id, { day: e.target.value })}>
                     {weekDays.map((day) => <option key={day} value={day}>{parseDate(day).toLocaleDateString("fi-FI", { weekday: "short", day: "numeric", month: "numeric" })}</option>)}
                   </select></td>
-                  <td><textarea value={item.taskName} onChange={(e) => updateWeeklyItem(item.id, { taskName: e.target.value })} /></td>
+                  <td><textarea value={item.taskName} onChange={(e) => updateWeeklyItem(item.id, { taskName: e.target.value })} />{item.sourceTaskId && <small className="source-task-note">Yhdistetty yleisaikatauluun</small>}</td>
                   <td><input value={item.location ?? ""} onChange={(e) => updateWeeklyItem(item.id, { location: e.target.value })} /></td>
                   <td><input value={item.responsible ?? ""} onChange={(e) => updateWeeklyItem(item.id, { responsible: e.target.value })} /></td>
                   <td><textarea value={item.target ?? ""} onChange={(e) => updateWeeklyItem(item.id, { target: e.target.value })} /></td>
