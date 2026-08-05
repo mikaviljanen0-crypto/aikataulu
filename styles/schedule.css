@@ -1,5 +1,5 @@
 .app-shell {
-  min-width: 1180px;
+  min-width: 1050px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -8,41 +8,77 @@
 .schedule {
   flex: 1;
   display: grid;
-  grid-template-columns: 590px minmax(900px, 1fr);
   background: white;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .task-pane {
-  border-right: 2px solid #9ca8b5;
   overflow: auto;
+  min-width: 0;
+}
+
+.pane-resizer {
+  width: 8px;
+  min-width: 8px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #b6c0cb;
+  cursor: col-resize;
+  position: relative;
+  z-index: 12;
+}
+
+.pane-resizer:hover,
+.pane-resizer:active {
+  background: #4f82bd;
 }
 
 table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+}
+
+thead tr {
+  height: 54px;
+}
+
+tbody tr {
+  height: 40px;
+  max-height: 40px;
 }
 
 th,
 td {
   height: 40px;
+  max-height: 40px;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   padding: 4px 6px;
   text-align: left;
   font-size: 13px;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 th {
   height: 54px;
+  max-height: 54px;
   background: var(--header);
   color: #374354;
   font-size: 12px;
+  position: relative;
 }
 
 .number-column {
-  width: 42px;
+  width: 62px;
+}
+
+.task-name-column {
+  width: var(--task-name-width);
 }
 
 .duration-column {
@@ -53,21 +89,115 @@ th {
   width: 118px;
 }
 
-td input {
+.predecessor-column {
+  width: 180px;
+}
+
+.lag-column {
+  width: 68px;
+}
+
+.column-resizer {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 9px;
+  height: 100%;
+  min-width: 9px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: col-resize;
+  z-index: 5;
+}
+
+.column-resizer:hover,
+.column-resizer:active {
+  background: rgb(22 103 200 / 35%);
+}
+
+td input,
+td select {
   width: 100%;
+  height: 30px;
   border: 1px solid transparent;
   background: transparent;
   padding: 5px;
 }
 
-td input:focus {
+td input:focus,
+td select:focus {
   outline: none;
   border-color: #7aa7dc;
   background: white;
 }
 
+td input:disabled,
+td select:disabled {
+  color: #172033;
+  opacity: 1;
+  font-weight: 700;
+}
+
 tr.selected td {
   background: #eaf3ff;
+}
+
+.summary-row td {
+  background: #e8edf3;
+  font-weight: 700;
+}
+
+.task-name-cell {
+  position: relative;
+  width: var(--task-name-width);
+  height: 40px;
+  max-height: 40px;
+}
+
+.collapse-button {
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  z-index: 2;
+  width: 20px;
+  height: 22px;
+  min-width: 20px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #344054;
+  line-height: 1;
+}
+
+.collapse-button:hover {
+  background: transparent;
+  color: #0f5cad;
+}
+
+.task-name-input {
+  font-weight: inherit;
+}
+
+.critical-row td:first-child,
+.critical-row .task-name-input {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.schedule-message {
+  position: fixed;
+  top: 66px;
+  right: 18px;
+  z-index: 20;
+  max-width: 460px;
+  border-radius: 6px;
+  background: #172b4d;
+  color: white;
+  padding: 10px 14px;
+  box-shadow: 0 6px 22px rgb(0 0 0 / 24%);
+  font-size: 13px;
 }
 
 footer {
@@ -80,4 +210,86 @@ footer {
   background: white;
   color: #667385;
   font-size: 12px;
+}
+
+
+.timeline-controls {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline-control-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+}
+
+.timeline-control-group label,
+.zoom-control {
+  display: grid;
+  gap: 4px;
+  color: #526071;
+  font-size: 11px;
+}
+
+.timeline-control-group input,
+.zoom-control select {
+  height: 31px;
+  border: 1px solid #c9d1db;
+  border-radius: 4px;
+  background: white;
+  color: #172033;
+  padding: 4px 7px;
+}
+
+.timeline-label {
+  align-self: center;
+  margin-right: 2px;
+  color: #526071;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.timeline-controls button {
+  height: 31px;
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+
+.topbar-actions { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+.topbar-group { display:flex; align-items:center; gap:5px; padding-right:10px; border-right:1px solid rgb(255 255 255 / 18%); }
+.topbar-group-right { margin-left:auto; border-right:0; padding-right:0; }
+.primary-action { background:#0f6cc9 !important; color:white !important; border-color:#0f6cc9 !important; }
+.icon-button { width:32px; min-width:32px; padding-inline:0 !important; }
+.autosave-status { display:inline-flex; align-items:center; height:30px; padding:0 8px; border-radius:4px; background:rgb(255 255 255 / 12%); color:rgb(255 255 255 / 78%); font-size:11px; }
+.quiet-button { opacity:.75; }
+
+.view-panel-backdrop { position:fixed; inset:0; z-index:40; border:0; border-radius:0; background:rgb(15 23 42 / 24%); }
+.view-panel { position:fixed; top:0; right:0; z-index:41; width:340px; height:100vh; overflow:auto; background:white; box-shadow:-10px 0 34px rgb(15 23 42 / 22%); }
+.view-panel-header { min-height:72px; display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); background:#f7f9fc; }
+.view-panel-header > div { display:grid; gap:3px; }
+.view-panel-header strong { font-size:17px; }
+.view-panel-header span { color:#697586; font-size:11px; }
+.view-panel-close { width:34px; min-width:34px; height:34px; padding:0; border-radius:50%; font-size:22px; }
+.view-panel-section { display:grid; gap:11px; padding:16px; border-bottom:1px solid var(--border); }
+.view-panel-section > label:not(.view-panel-check) { display:grid; gap:5px; color:#526071; font-size:11px; font-weight:700; }
+.view-panel-section input[type="date"], .view-panel-section select { width:100%; height:36px; border:1px solid #c8d0da; border-radius:5px; background:white; padding:5px 8px; }
+.view-panel-button-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.view-panel-button-grid button { height:34px; }
+.view-panel-check { display:grid; grid-template-columns:20px 1fr; gap:9px; align-items:start; cursor:pointer; }
+.view-panel-check input { margin-top:3px; }
+.view-panel-check span { display:grid; gap:2px; }
+.view-panel-check strong { font-size:13px; }
+.view-panel-check small { color:#697586; font-size:11px; line-height:1.35; }
+
+@media (max-width:1350px) {
+  .brand span, .autosave-status, .quiet-button { display:none; }
+  .topbar-actions { gap:6px; }
+  .topbar-group { padding-right:6px; }
 }
