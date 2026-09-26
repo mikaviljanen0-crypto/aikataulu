@@ -11,7 +11,7 @@ import {
 } from "@/lib/wbs";
 import type { Task } from "@/types/schedule";
 import { addDays, maxIsoDate, minIsoDate } from "@/lib/date";
-import { workdayEnd } from "@/lib/calendar";
+import { nextWorkday, workdayEnd } from "@/lib/calendar";
 import { GanttChart } from "./GanttChart";
 import type { TimelineZoom } from "./TimelineControls";
 import { ViewPanel } from "./ViewPanel";
@@ -214,8 +214,13 @@ export default function ScheduleApp() {
 
   function updateTask(id: number, patch: Partial<Task>) {
     commit((current) => {
+      const normalizedPatch =
+        "start" in patch && patch.start
+          ? { ...patch, start: nextWorkday(patch.start) }
+          : patch;
+
       const next = current.map((task) =>
-        task.id === id ? { ...task, ...patch } : task,
+        task.id === id ? { ...task, ...normalizedPatch } : task,
       );
 
       const affectsSchedule =
