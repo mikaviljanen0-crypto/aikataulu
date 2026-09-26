@@ -685,6 +685,7 @@ export default function ScheduleApp() {
           fitToWindow={fitToWindow}
           showWeekends={showWeekends}
           showToday={showToday}
+          showBaseline={showBaseline}
           onClose={() => setViewPanelOpen(false)}
           onRangeStartChange={setRangeStart}
           onRangeEndChange={setRangeEnd}
@@ -694,6 +695,7 @@ export default function ScheduleApp() {
           onFitToWindowChange={setFitToWindow}
           onShowWeekendsChange={setShowWeekends}
           onShowTodayChange={setShowToday}
+          onShowBaselineChange={setShowBaseline}
         />
 
         <footer className="statusbar">
