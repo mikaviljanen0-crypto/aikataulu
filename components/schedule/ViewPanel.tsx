@@ -8,6 +8,7 @@ type Props = {
   fitToWindow: boolean;
   showWeekends: boolean;
   showToday: boolean;
+  showBaseline: boolean;
   onClose: () => void;
   onRangeStartChange: (value: string) => void;
   onRangeEndChange: (value: string) => void;
@@ -17,6 +18,7 @@ type Props = {
   onFitToWindowChange: (value: boolean) => void;
   onShowWeekendsChange: (value: boolean) => void;
   onShowTodayChange: (value: boolean) => void;
+  onShowBaselineChange: (value: boolean) => void;
 };
 
 export function ViewPanel(props: Props) {
@@ -27,7 +29,7 @@ export function ViewPanel(props: Props) {
       <button className="view-panel-backdrop" aria-label="Sulje" onClick={props.onClose} />
       <aside className="view-panel">
         <header className="view-panel-header">
-          <div><strong>Näkymä</strong><span>Aikaskaala ja näkyvä alue</span></div>
+          <div><strong>Näkymä</strong><span>Aikaskaala ja näkyvät tiedot</span></div>
           <button className="view-panel-close" onClick={props.onClose}>×</button>
         </header>
 
@@ -58,16 +60,22 @@ export function ViewPanel(props: Props) {
         </section>
 
         <section className="view-panel-section">
-          {[
-            ["Sovita ikkunaan", "Näytä aikaväli ilman vaakavieritystä.", props.fitToWindow, props.onFitToWindowChange],
-            ["Näytä viikonloput", "Harmaa tausta lauantaille ja sunnuntaille.", props.showWeekends, props.onShowWeekendsChange],
-            ["Näytä tänään", "Ohut punainen viiva nykyisen päivän kohdalla.", props.showToday, props.onShowTodayChange],
-          ].map(([title, note, checked, handler]) => (
-            <label className="view-panel-check" key={title as string}>
-              <input type="checkbox" checked={checked as boolean} onChange={(e) => (handler as (v:boolean)=>void)(e.target.checked)} />
-              <span><strong>{title as string}</strong><small>{note as string}</small></span>
-            </label>
-          ))}
+          <label className="view-panel-check">
+            <input type="checkbox" checked={props.fitToWindow} onChange={(e) => props.onFitToWindowChange(e.target.checked)} />
+            <span><strong>Sovita ikkunaan</strong><small>Näytä valittu aikaväli ilman vaakavieritystä.</small></span>
+          </label>
+          <label className="view-panel-check">
+            <input type="checkbox" checked={props.showWeekends} onChange={(e) => props.onShowWeekendsChange(e.target.checked)} />
+            <span><strong>Näytä vapaat päivät</strong><small>Viikonloput ja Suomen arkipyhät taustalla.</small></span>
+          </label>
+          <label className="view-panel-check">
+            <input type="checkbox" checked={props.showToday} onChange={(e) => props.onShowTodayChange(e.target.checked)} />
+            <span><strong>Näytä nykyhetki</strong><small>Harmaa viiva tämän päivän kohdalla.</small></span>
+          </label>
+          <label className="view-panel-check">
+            <input type="checkbox" checked={props.showBaseline} onChange={(e) => props.onShowBaselineChange(e.target.checked)} />
+            <span><strong>Näytä tavoite</strong><small>Tallennettu tavoite näkyy matalana harmaana janana.</small></span>
+          </label>
         </section>
       </aside>
     </>

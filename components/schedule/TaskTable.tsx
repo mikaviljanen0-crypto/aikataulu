@@ -1,26 +1,33 @@
-import { formatEndDate } from "@/lib/date";
+import { workdayEnd } from "@/lib/calendar";
 import { getWbs } from "@/lib/wbs";
 import type { Task } from "@/types/schedule";
 
 type TaskTableProps = {
   tasks: Task[];
   visibleTasks: Task[];
-  selectedId: number;
+  selectedIds: Set<number>;
   criticalTaskIds: Set<number>;
   showPlanningColumns: boolean;
+  showTrackingColumns: boolean;
   taskNameWidth: number;
   onTaskNameWidthChange: (width: number) => void;
-  onSelect: (id: number) => void;
+  onSelect: (id: number, options: { additive: boolean; range: boolean }) => void;
   onUpdate: (id: number, patch: Partial<Task>) => void;
   onToggleCollapse: (id: number) => void;
 };
 
+function displayDate(value: string): string {
+  if (!value) return "";
+  return new Date(`${value}T12:00:00`).toLocaleDateString("fi-FI");
+}
+
 export function TaskTable({
   tasks,
   visibleTasks,
-  selectedId,
+  selectedIds,
   criticalTaskIds,
   showPlanningColumns,
+  showTrackingColumns,
   taskNameWidth,
   onTaskNameWidthChange,
   onSelect,
@@ -30,23 +37,18 @@ export function TaskTable({
   function beginColumnResize(event: React.PointerEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
-
     const startX = event.clientX;
     const startWidth = taskNameWidth;
 
     const onMove = (moveEvent: PointerEvent) => {
-      const nextWidth = Math.min(
-        520,
-        Math.max(150, startWidth + moveEvent.clientX - startX),
+      onTaskNameWidthChange(
+        Math.min(520, Math.max(170, startWidth + moveEvent.clientX - startX)),
       );
-      onTaskNameWidthChange(nextWidth);
     };
-
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp, { once: true });
   }
@@ -56,7 +58,7 @@ export function TaskTable({
       className="task-pane"
       style={{ "--task-name-width": `${taskNameWidth}px` } as React.CSSProperties}
     >
-      <table>
+      <table className="schedule-table">
         <thead>
           <tr>
             <th className="number-column">WBS</th>
@@ -72,10 +74,21 @@ export function TaskTable({
             <th className="duration-column">Kesto</th>
             <th className="date-column">Alku</th>
             <th className="date-column">Loppu</th>
+
             {showPlanningColumns && (
               <>
+                <th className="area-column">Rakennus / alue</th>
+                <th className="owner-column">Vastuu</th>
                 <th className="predecessor-column">Edeltävä</th>
                 <th className="lag-column">Viive</th>
+              </>
+            )}
+
+            {showTrackingColumns && (
+              <>
+                <th className="progress-column">Valmis %</th>
+                <th className="date-column">Tot. alku</th>
+                <th className="date-column">Tot. loppu</th>
               </>
             )}
           </tr>
@@ -84,18 +97,24 @@ export function TaskTable({
         <tbody>
           {visibleTasks.map((task) => {
             const originalIndex = tasks.findIndex((item) => item.id === task.id);
+            const end = workdayEnd(task.start, task.duration);
 
             return (
               <tr
                 key={task.id}
-                className={`${task.id === selectedId ? "selected" : ""} ${
-                  task.type === "summary" ? "summary-row" : ""
-                } ${
-                  criticalTaskIds.has(task.id) ? "critical-row" : ""
-                }`}
-                onClick={() => onSelect(task.id)}
+                className={[
+                  selectedIds.has(task.id) ? "selected" : "",
+                  task.type === "summary" ? "summary-row" : "",
+                  criticalTaskIds.has(task.id) ? "critical-row" : "",
+                ].join(" ")}
+                onClick={(event) =>
+                  onSelect(task.id, {
+                    additive: event.ctrlKey || event.metaKey,
+                    range: event.shiftKey,
+                  })
+                }
               >
-                <td>{getWbs(tasks, originalIndex)}</td>
+                <td className="wbs-cell">{getWbs(tasks, originalIndex)}</td>
 
                 <td className="task-name-cell">
                   {task.type === "summary" && (
@@ -109,14 +128,12 @@ export function TaskTable({
                       {task.collapsed ? "▸" : "▾"}
                     </button>
                   )}
-
                   <input
                     className="task-name-input"
-                    style={{ paddingLeft: 8 + task.level * 18 }}
+                    style={{ paddingLeft: 7 + task.level * 16 }}
                     value={task.name}
-                    onChange={(event) =>
-                      onUpdate(task.id, { name: event.target.value })
-                    }
+                    onFocus={() => onSelect(task.id, { additive: false, range: false })}
+                    onChange={(event) => onUpdate(task.id, { name: event.target.value })}
                   />
                 </td>
 
@@ -139,16 +156,27 @@ export function TaskTable({
                     type="date"
                     disabled={task.type === "summary"}
                     value={task.start}
-                    onChange={(event) =>
-                      onUpdate(task.id, { start: event.target.value })
-                    }
+                    onChange={(event) => onUpdate(task.id, { start: event.target.value })}
                   />
                 </td>
-
-                <td>{formatEndDate(task.start, task.duration)}</td>
+                <td className="readonly-date">{displayDate(end)}</td>
 
                 {showPlanningColumns && (
                   <>
+                    <td>
+                      <input
+                        value={task.area ?? ""}
+                        disabled={task.type === "summary"}
+                        onChange={(event) => onUpdate(task.id, { area: event.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        value={task.owner ?? ""}
+                        disabled={task.type === "summary"}
+                        onChange={(event) => onUpdate(task.id, { owner: event.target.value })}
+                      />
+                    </td>
                     <td>
                       <select
                         value={task.predecessorId ?? ""}
@@ -165,33 +193,75 @@ export function TaskTable({
                         {tasks
                           .filter(
                             (candidate) =>
-                              candidate.id !== task.id &&
-                              candidate.type !== "summary",
+                              candidate.id !== task.id && candidate.type !== "summary",
                           )
                           .map((candidate) => {
-                            const candidateIndex = tasks.findIndex(
-                              (item) => item.id === candidate.id,
-                            );
-
+                            const i = tasks.findIndex((item) => item.id === candidate.id);
                             return (
                               <option key={candidate.id} value={candidate.id}>
-                                {getWbs(tasks, candidateIndex)} {candidate.name}
+                                {getWbs(tasks, i)} {candidate.name}
                               </option>
                             );
                           })}
                       </select>
                     </td>
-
                     <td>
                       <input
                         type="number"
                         value={task.lagDays ?? 0}
-                        disabled={
-                          task.type === "summary" || !task.predecessorId
+                        disabled={task.type === "summary" || !task.predecessorId}
+                        onChange={(event) =>
+                          onUpdate(task.id, { lagDays: Number(event.target.value) })
                         }
+                      />
+                    </td>
+                  </>
+                )}
+
+                {showTrackingColumns && (
+                  <>
+                    <td>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        disabled={task.type === "summary"}
+                        value={task.progress ?? 0}
+                        onChange={(event) => {
+                          const progress = Math.min(100, Math.max(0, Number(event.target.value)));
+                          onUpdate(task.id, {
+                            progress,
+                            started: progress > 0,
+                            actualStart:
+                              progress > 0 ? task.actualStart ?? task.start : undefined,
+                            actualEnd:
+                              progress >= 100 ? task.actualEnd ?? end : undefined,
+                          });
+                        }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        disabled={task.type === "summary"}
+                        value={task.actualStart ?? ""}
                         onChange={(event) =>
                           onUpdate(task.id, {
-                            lagDays: Number(event.target.value),
+                            actualStart: event.target.value || undefined,
+                            started: Boolean(event.target.value),
+                          })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        disabled={task.type === "summary"}
+                        value={task.actualEnd ?? ""}
+                        onChange={(event) =>
+                          onUpdate(task.id, {
+                            actualEnd: event.target.value || undefined,
+                            progress: event.target.value ? 100 : task.progress,
                           })
                         }
                       />

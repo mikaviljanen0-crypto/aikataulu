@@ -1,29 +1,45 @@
 .projectbar {
-  min-height: 68px;
+  min-height: 56px;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 9px 16px;
-  background: white;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 10px 7px;
+  background: #fff;
   border-bottom: 1px solid var(--border);
 }
 
 .projectbar label {
   display: grid;
-  gap: 5px;
-  color: #526071;
-  font-size: 12px;
+  gap: 3px;
+  color: #627083;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .04em;
 }
 
 .projectbar input {
-  width: 230px;
-  border: 1px solid #c9d1db;
-  border-radius: 4px;
-  padding: 7px 8px;
-  color: #172033;
-  background: white;
+  width: 210px;
+  height: 28px;
+  border: 1px solid #cbd4de;
+  border-radius: 2px;
+  padding: 3px 7px;
+  background: #fff;
+  font-size: 11px;
 }
 
-.projectbar label:last-child input {
-  width: 150px;
+.projectbar .small-field input { width: 80px; }
+.projectbar .status-field input { width: 128px; }
+
+.status-stepper {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.status-stepper button { height: 28px; min-height: 28px; font-size: 10px; }
+
+.save-state {
+  margin-left: auto;
+  align-self: center;
+  color: #7b8794;
+  font-size: 10px;
 }

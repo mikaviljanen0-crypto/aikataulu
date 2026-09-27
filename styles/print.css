@@ -1,13 +1,40 @@
-@media print {
-  .topbar nav {
-    display: none;
-  }
+@page { size: A3 landscape; margin: 7mm; }
 
-  .app-shell {
-    min-width: 0;
+@media print {
+  html, body { background: #fff !important; }
+  .snedo-shell { display: block; min-width: 0; }
+  .snedo-sidebar, .topbar, .view-panel, .view-panel-backdrop, .pane-resizer,
+  .status-stepper, .save-state, .statusbar, .schedule-message { display: none !important; }
+
+  .workspace { display: block; min-height: 0; }
+  .projectbar {
+    display: grid;
+    grid-template-columns: 22mm 1fr 45mm 38mm;
+    gap: 3mm;
+    min-height: 15mm;
+    padding: 0 0 3mm;
+    border-bottom: 1px solid #000;
+  }
+  .projectbar input {
+    border: 0 !important;
+    padding: 0 !important;
+    font-weight: 700;
+    width: 100% !important;
   }
 
   .schedule {
-    grid-template-columns: 45% 55%;
+    display: grid !important;
+    grid-template-columns: 35% 65% !important;
+    overflow: visible !important;
   }
+
+  .task-pane, .gantt-pane { overflow: visible !important; }
+  .schedule-table { width: 100% !important; min-width: 0 !important; }
+  .schedule-table th, .schedule-table td { font-size: 7.5pt !important; }
+  .schedule-table thead tr, .calendar-header { height: 12mm !important; }
+  .schedule-table tbody tr, .gantt-row { height: 6mm !important; max-height: 6mm !important; }
+  .task-bar { top: 1.7mm !important; height: 3mm !important; }
+  .baseline-bar { top: 4.9mm !important; }
+
+  .column-resizer, .collapse-button, .resize-handle { display: none !important; }
 }
