@@ -4,6 +4,7 @@ import {
   daysBetween,
 } from "@/lib/date";
 import {
+  addWorkdays,
   isWorkday,
   workdayEnd,
   workdaysInclusive,
@@ -118,7 +119,40 @@ export function GanttChart({
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const todayOffset = dateOffsetFrom(todayIso, rangeStart);
-  const statusOffset = dateOffsetFrom(statusDate, rangeStart);
+
+  function trackingPointDate(task: Task): string {
+    const targetStart = task.baselineStart ?? task.start;
+    const targetDuration = task.baselineDuration ?? task.duration;
+    const progress = Math.min(100, Math.max(0, task.progress ?? 0));
+
+    if (progress <= 0) {
+      return targetStart > statusDate ? statusDate : targetStart;
+    }
+
+    if (progress >= 100) {
+      return task.actualEnd ?? workdayEnd(targetStart, targetDuration);
+    }
+
+    const completedTargetDays = Math.max(
+      0,
+      Math.round((Math.max(1, targetDuration) - 1) * (progress / 100)),
+    );
+    return addWorkdays(targetStart, completedTargetDays);
+  }
+
+  const trackingPoints = visibleTasks.map((task, index) => ({
+    x: dateOffsetFrom(trackingPointDate(task), rangeStart) * dayWidth + dayWidth / 2,
+    y: index * ROW_HEIGHT + ROW_HEIGHT / 2,
+  }));
+
+  const trackingPath =
+    trackingPoints.length > 0
+      ? trackingPoints.slice(1).reduce((path, point, index) => {
+          const previous = trackingPoints[index];
+          const middleY = (previous.y + point.y) / 2;
+          return `${path} V ${middleY} H ${point.x} V ${point.y}`;
+        }, `M ${trackingPoints[0].x} ${trackingPoints[0].y}`)
+      : "";
 
   const dependencyLines = visibleTasks.flatMap((task, targetIndex) => {
     if (!task.predecessorId) return [];
@@ -265,19 +299,20 @@ export function GanttChart({
               left: todayOffset * dayWidth + dayWidth / 2,
               height: visibleTasks.length * ROW_HEIGHT,
             }}
-          />
+          >
+            <span>Nyt</span>
+          </div>
         )}
 
-        {statusOffset >= 0 && statusOffset < totalDays && (
-          <div
-            className="status-line"
-            style={{
-              left: statusOffset * dayWidth + dayWidth / 2,
-              height: visibleTasks.length * ROW_HEIGHT,
-            }}
+        {trackingPath && (
+          <svg
+            className="tracking-overlay"
+            width={chartWidth}
+            height={visibleTasks.length * ROW_HEIGHT}
+            aria-hidden="true"
           >
-            <span>Seuranta</span>
-          </div>
+            <path d={trackingPath} />
+          </svg>
         )}
 
         <svg
