@@ -80,8 +80,9 @@
   top: 20px;
   height: 4px;
   border-radius: 1px;
-  background: #9aa6b2;
-  opacity: .85;
+  background: #f39a1f;
+  border: 1px solid #c66f00;
+  opacity: .95;
   z-index: 3;
 }
 
@@ -107,15 +108,38 @@
 .nonwork-column.holiday { background: rgb(21 93 168 / 8%); border-left: 1px solid rgb(21 93 168 / 12%); }
 
 .today-line {
-  position: absolute; top: 0; width: 1px; background: #78889a; pointer-events: none; z-index: 8;
+  position: absolute;
+  top: 0;
+  width: 2px;
+  background: #18a83b;
+  pointer-events: none;
+  z-index: 8;
+}
+.today-line span {
+  position: absolute;
+  top: -20px;
+  left: 3px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  background: #18a83b;
+  color: #fff;
+  font-size: 8px;
+  white-space: nowrap;
 }
 
-.status-line {
-  position: absolute; top: 0; width: 2px; background: #e04b36; pointer-events: none; z-index: 9;
+.tracking-overlay {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 10;
+  pointer-events: none;
+  overflow: visible;
 }
-.status-line span {
-  position: absolute; top: -20px; left: 3px; padding: 1px 3px;
-  border-radius: 2px; background: #e04b36; color: #fff; font-size: 8px; white-space: nowrap;
+.tracking-overlay path {
+  fill: none;
+  stroke: #ed1c24;
+  stroke-width: 2;
+  stroke-linejoin: miter;
+  stroke-linecap: square;
 }
 
 .gantt-pane.fit-to-window { overflow-x: hidden; }
