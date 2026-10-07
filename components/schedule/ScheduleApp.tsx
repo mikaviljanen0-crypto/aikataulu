@@ -98,6 +98,8 @@ export default function ScheduleApp() {
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
+  /* LocalStorage hydration intentionally restores the persisted project once on mount. */
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -138,6 +140,7 @@ export default function ScheduleApp() {
     }
     setLoaded(true);
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const normalizedTasks = useMemo(() => normalizeSummaries(tasks), [tasks]);
   const criticalTaskIds = useMemo(
