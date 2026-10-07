@@ -35,16 +35,36 @@ export function normalizeSummaries(tasks: Task[]): Task[] {
       .sort()
       .at(-1)!;
 
-    const progress =
-      directChildren.reduce((sum, child) => sum + (child.progress ?? 0), 0) /
-      directChildren.length;
+    const totalWeight = directChildren.reduce(
+      (sum, child) => sum + Math.max(1, child.duration),
+      0,
+    );
+    const weightedProgress =
+      directChildren.reduce(
+        (sum, child) =>
+          sum + Math.max(1, child.duration) * Math.min(100, Math.max(0, child.progress ?? 0)),
+        0,
+      ) / Math.max(1, totalWeight);
+
+    const actualStarts = directChildren
+      .map((child) => child.actualStart)
+      .filter((value): value is string => Boolean(value))
+      .sort();
+    const allComplete = directChildren.every((child) => (child.progress ?? 0) >= 100);
+    const actualEnds = directChildren
+      .map((child) => child.actualEnd)
+      .filter((value): value is string => Boolean(value))
+      .sort();
 
     return {
       ...task,
       type: "summary",
       start: earliest,
       duration: workdaysInclusive(earliest, latest),
-      progress: Math.round(progress),
+      progress: Math.round(weightedProgress),
+      started: directChildren.some((child) => (child.progress ?? 0) > 0),
+      actualStart: actualStarts[0],
+      actualEnd: allComplete ? actualEnds.at(-1) : undefined,
     };
   });
 }
