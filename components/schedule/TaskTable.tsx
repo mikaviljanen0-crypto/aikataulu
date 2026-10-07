@@ -9,6 +9,7 @@ type TaskTableProps = {
   criticalTaskIds: Set<number>;
   showPlanningColumns: boolean;
   showTrackingColumns: boolean;
+  statusDate: string;
   taskNameWidth: number;
   onTaskNameWidthChange: (width: number) => void;
   onSelect: (id: number, options: { additive: boolean; range: boolean }) => void;
@@ -28,6 +29,7 @@ export function TaskTable({
   criticalTaskIds,
   showPlanningColumns,
   showTrackingColumns,
+  statusDate,
   taskNameWidth,
   onTaskNameWidthChange,
   onSelect,
@@ -86,7 +88,8 @@ export function TaskTable({
 
             {showTrackingColumns && (
               <>
-                <th className="progress-column">Valmis %</th>
+                <th className="complete-column">Valmis</th>
+                <th className="progress-column">Tot. kesto-%</th>
                 <th className="date-column">Tot. alku</th>
                 <th className="date-column">Tot. loppu</th>
               </>
@@ -98,6 +101,7 @@ export function TaskTable({
           {visibleTasks.map((task) => {
             const originalIndex = tasks.findIndex((item) => item.id === task.id);
             const end = workdayEnd(task.start, task.duration);
+            const complete = (task.progress ?? 0) >= 100;
 
             return (
               <tr
@@ -159,6 +163,7 @@ export function TaskTable({
                     onChange={(event) => onUpdate(task.id, { start: event.target.value })}
                   />
                 </td>
+
                 <td className="readonly-date">{displayDate(end)}</td>
 
                 {showPlanningColumns && (
@@ -220,25 +225,52 @@ export function TaskTable({
 
                 {showTrackingColumns && (
                   <>
-                    <td>
+                    <td className="complete-cell">
+                      <select
+                        value={complete ? "yes" : "no"}
+                        disabled={task.type === "summary"}
+                        onChange={(event) => {
+                          const isComplete = event.target.value === "yes";
+                          onUpdate(task.id, isComplete
+                            ? {
+                                progress: 100,
+                                started: true,
+                                actualStart: task.actualStart ?? task.start,
+                                actualEnd: task.actualEnd ?? statusDate,
+                              }
+                            : {
+                                progress: Math.min(99, task.progress ?? 0),
+                                actualEnd: undefined,
+                              });
+                        }}
+                      >
+                        <option value="no">Ei</option>
+                        <option value="yes">Kyllä</option>
+                      </select>
+                    </td>
+                    <td className="progress-cell">
                       <input
                         type="number"
                         min={0}
                         max={100}
                         disabled={task.type === "summary"}
-                        value={task.progress ?? 0}
+                        value={Math.round(task.progress ?? 0)}
                         onChange={(event) => {
-                          const progress = Math.min(100, Math.max(0, Number(event.target.value)));
+                          const progress = Math.min(
+                            100,
+                            Math.max(0, Number(event.target.value)),
+                          );
                           onUpdate(task.id, {
                             progress,
                             started: progress > 0,
                             actualStart:
                               progress > 0 ? task.actualStart ?? task.start : undefined,
                             actualEnd:
-                              progress >= 100 ? task.actualEnd ?? end : undefined,
+                              progress >= 100 ? task.actualEnd ?? statusDate : undefined,
                           });
                         }}
                       />
+                      <span>%</span>
                     </td>
                     <td>
                       <input
