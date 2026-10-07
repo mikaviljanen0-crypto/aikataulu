@@ -182,7 +182,8 @@
 .owner-column { width: 100px; }
 .predecessor-column { width: 145px; }
 .lag-column { width: 52px; }
-.progress-column { width: 66px; }
+.complete-column { width: 58px; }
+.progress-column { width: 74px; }
 
 .column-resizer {
   position: absolute; top: 0; right: -4px; width: 8px; height: 100%;
@@ -290,4 +291,34 @@
   .snedo-shell { grid-template-columns: 164px minmax(0,1fr); }
   .snedo-sidebar { font-size: 10px; }
   .save-state { display: none; }
+}
+
+
+.complete-cell select {
+  font-weight: 700;
+  text-align: center;
+}
+
+.progress-cell {
+  position: relative;
+}
+
+.progress-cell input {
+  padding-right: 16px !important;
+  text-align: right;
+  font-weight: 700;
+}
+
+.progress-cell span {
+  position: absolute;
+  right: 6px;
+  top: 7px;
+  color: #6b7787;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.print-header,
+.print-footer {
+  display: none;
 }
