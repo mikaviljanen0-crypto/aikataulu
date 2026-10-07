@@ -19,6 +19,7 @@ import { ProjectBar } from "./ProjectBar";
 import { TaskTable } from "./TaskTable";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
+import { PrintHeader } from "./PrintHeader";
 
 const STORAGE_KEY = "snedo-aikataulu-project-v1";
 const VIEW_STORAGE_KEY = "snedo-aikataulu-view-v1";
@@ -90,7 +91,7 @@ export default function ScheduleApp() {
   const [viewPanelOpen, setViewPanelOpen] = useState(false);
   const [fitToWindow, setFitToWindow] = useState(true);
   const [showWeekends, setShowWeekends] = useState(true);
-  const [showToday, setShowToday] = useState(false);
+  const [showToday, setShowToday] = useState(true);
   const [showBaseline, setShowBaseline] = useState(true);
   const [activeNav, setActiveNav] = useState("general");
 
@@ -129,7 +130,7 @@ export default function ScheduleApp() {
         setTimelineZoom(view.timelineZoom ?? "week");
         setFitToWindow(view.fitToWindow ?? true);
         setShowWeekends(view.showWeekends ?? true);
-        setShowToday(view.showToday ?? false);
+        setShowToday(view.showToday ?? true);
         setShowBaseline(view.showBaseline ?? true);
       } catch {
         // Näkymä palautuu oletukseen.
@@ -639,6 +640,12 @@ export default function ScheduleApp() {
           onShiftStatusDate={(days) => setStatusDate(addDays(statusDate, days))}
         />
 
+        <PrintHeader
+          projectName={projectName}
+          statusDate={statusDate}
+          updatedDate={new Date().toISOString().slice(0, 10)}
+        />
+
         <section
           className="schedule"
           style={{
@@ -652,6 +659,7 @@ export default function ScheduleApp() {
             criticalTaskIds={criticalTaskIds}
             showPlanningColumns={showPlanningColumns}
             showTrackingColumns={showTrackingColumns}
+            statusDate={statusDate}
             taskNameWidth={taskNameWidth}
             onTaskNameWidthChange={setTaskNameWidth}
             onSelect={selectTask}
