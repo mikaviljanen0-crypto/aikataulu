@@ -4,37 +4,79 @@
   html, body { background: #fff !important; }
   .snedo-shell { display: block; min-width: 0; }
   .snedo-sidebar, .topbar, .view-panel, .view-panel-backdrop, .pane-resizer,
-  .status-stepper, .save-state, .statusbar, .schedule-message { display: none !important; }
+  .projectbar, .statusbar, .schedule-message { display: none !important; }
 
   .workspace { display: block; min-height: 0; }
-  .projectbar {
-    display: grid;
-    grid-template-columns: 22mm 1fr 45mm 38mm;
-    gap: 3mm;
-    min-height: 15mm;
-    padding: 0 0 3mm;
-    border-bottom: 1px solid #000;
+
+  .print-header {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    min-height: 14mm;
+    margin-bottom: 2mm;
+    border-top: 1px solid #d71920;
+    border-bottom: 1px solid #d71920;
+    padding: 0 3mm;
+    font-family: "Segoe UI", Arial, sans-serif;
   }
-  .projectbar input {
-    border: 0 !important;
-    padding: 0 !important;
-    font-weight: 700;
-    width: 100% !important;
+
+  .print-header strong {
+    grid-column: 2;
+    font-size: 15pt;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .print-header span {
+    grid-column: 3;
+    justify-self: end;
+    font-size: 11pt;
+  }
+
+  .print-footer {
+    display: flex !important;
+    position: fixed;
+    left: 7mm;
+    right: 7mm;
+    bottom: 3mm;
+    justify-content: space-between;
+    border-top: 1px solid #d71920;
+    padding-top: 1.5mm;
+    font-size: 8pt;
   }
 
   .schedule {
     display: grid !important;
-    grid-template-columns: 35% 65% !important;
+    grid-template-columns: 38% 62% !important;
     overflow: visible !important;
+    border: 1px solid #111;
   }
 
   .task-pane, .gantt-pane { overflow: visible !important; }
   .schedule-table { width: 100% !important; min-width: 0 !important; }
-  .schedule-table th, .schedule-table td { font-size: 7.5pt !important; }
-  .schedule-table thead tr, .calendar-header { height: 12mm !important; }
-  .schedule-table tbody tr, .gantt-row { height: 6mm !important; max-height: 6mm !important; }
-  .task-bar { top: 1.7mm !important; height: 3mm !important; }
-  .baseline-bar { top: 4.9mm !important; }
+  .schedule-table th, .schedule-table td {
+    font-size: 7.2pt !important;
+    border-color: #c9c9c9 !important;
+  }
+  .schedule-table thead tr, .calendar-header { height: 10mm !important; }
+  .schedule-table tbody tr, .gantt-row { height: 5.5mm !important; max-height: 5.5mm !important; }
+
+  .task-bar { top: 1.35mm !important; height: 2.9mm !important; }
+  .summary-bar { top: 1.2mm !important; height: 3.2mm !important; }
+  .baseline-bar { top: 4.2mm !important; height: 1.1mm !important; }
+  .progress-fill { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .tracking-overlay path { stroke-width: 1.7 !important; }
+  .today-line { width: 1.5px !important; }
 
   .column-resizer, .collapse-button, .resize-handle { display: none !important; }
+
+  .schedule-table .summary-row td,
+  .task-bar,
+  .summary-bar,
+  .baseline-bar,
+  .progress-fill,
+  .today-line {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }
