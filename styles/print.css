@@ -317,6 +317,23 @@
     padding-left: 0 !important;
   }
 
+  .schedule-table input[type="date"] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background: transparent !important;
+  }
+
+  .schedule-table input[type="date"]::-webkit-calendar-picker-indicator,
+  .schedule-table input[type="date"]::-webkit-inner-spin-button,
+  .schedule-table input[type="date"]::-webkit-clear-button {
+    display: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   .schedule-table .number-column { width: 8% !important; }
   .schedule-table .task-name-column { width: 38% !important; }
   .schedule-table .duration-column { width: 9% !important; }
