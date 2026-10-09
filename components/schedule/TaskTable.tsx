@@ -79,10 +79,10 @@ export function TaskTable({
 
             {showPlanningColumns && (
               <>
-                <th className="area-column">Rakennus / alue</th>
-                <th className="owner-column">Vastuu</th>
-                <th className="predecessor-column">Edeltävä</th>
-                <th className="lag-column">Viive</th>
+                <th className="area-column print-hide-column">Rakennus / alue</th>
+                <th className="owner-column print-hide-column">Vastuu</th>
+                <th className="predecessor-column print-hide-column">Edeltävä</th>
+                <th className="lag-column print-hide-column">Viive</th>
               </>
             )}
 
@@ -90,8 +90,8 @@ export function TaskTable({
               <>
                 <th className="complete-column">Valmis</th>
                 <th className="progress-column">Tot. kesto-%</th>
-                <th className="date-column">Tot. alku</th>
-                <th className="date-column">Tot. loppu</th>
+                <th className="date-column print-hide-column">Tot. alku</th>
+                <th className="date-column print-hide-column">Tot. loppu</th>
               </>
             )}
           </tr>
@@ -168,21 +168,21 @@ export function TaskTable({
 
                 {showPlanningColumns && (
                   <>
-                    <td>
+                    <td className="print-hide-column">
                       <input
                         value={task.area ?? ""}
                         disabled={task.type === "summary"}
                         onChange={(event) => onUpdate(task.id, { area: event.target.value })}
                       />
                     </td>
-                    <td>
+                    <td className="print-hide-column">
                       <input
                         value={task.owner ?? ""}
                         disabled={task.type === "summary"}
                         onChange={(event) => onUpdate(task.id, { owner: event.target.value })}
                       />
                     </td>
-                    <td>
+                    <td className="print-hide-column">
                       <select
                         value={task.predecessorId ?? ""}
                         disabled={task.type === "summary"}
@@ -210,7 +210,7 @@ export function TaskTable({
                           })}
                       </select>
                     </td>
-                    <td>
+                    <td className="print-hide-column">
                       <input
                         type="number"
                         value={task.lagDays ?? 0}
@@ -272,7 +272,7 @@ export function TaskTable({
                       />
                       <span>%</span>
                     </td>
-                    <td>
+                    <td className="print-hide-column">
                       <input
                         type="date"
                         disabled={task.type === "summary"}
@@ -285,7 +285,7 @@ export function TaskTable({
                         }
                       />
                     </td>
-                    <td>
+                    <td className="print-hide-column">
                       <input
                         type="date"
                         disabled={task.type === "summary"}
