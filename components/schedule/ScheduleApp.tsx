@@ -644,7 +644,9 @@ export default function ScheduleApp() {
         />
 
         <PrintHeader
+          projectNumber={projectNumber}
           projectName={projectName}
+          scheduleName={scheduleName}
           statusDate={statusDate}
           updatedDate={new Date().toISOString().slice(0, 10)}
         />
