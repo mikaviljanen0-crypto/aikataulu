@@ -318,7 +318,8 @@
   pointer-events: none;
 }
 
-.print-header,
-.print-footer {
+.print-report-header,
+.print-legend,
+.print-report-footer {
   display: none;
 }
