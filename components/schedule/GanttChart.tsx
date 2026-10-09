@@ -35,6 +35,7 @@ type Props = {
   showToday: boolean;
   statusDate: string;
   showBaseline: boolean;
+  showTrackingLine: boolean;
   onUpdate: (id: number, patch: Partial<Task>) => void;
 };
 
@@ -60,6 +61,7 @@ export function GanttChart({
   showToday,
   statusDate,
   showBaseline,
+  showTrackingLine,
   onUpdate,
 }: Props) {
   const ganttRef = useRef<HTMLDivElement>(null);
@@ -304,7 +306,7 @@ export function GanttChart({
           </div>
         )}
 
-        {trackingPath && (
+        {showTrackingLine && trackingPath && (
           <svg
             className="tracking-overlay"
             width={chartWidth}
