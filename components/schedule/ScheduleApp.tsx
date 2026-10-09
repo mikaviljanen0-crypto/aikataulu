@@ -689,6 +689,7 @@ export default function ScheduleApp() {
             showToday={showToday}
             statusDate={statusDate}
             showBaseline={showBaseline}
+            showTrackingLine={showTrackingColumns}
             onUpdate={updateTask}
           />
         </section>
