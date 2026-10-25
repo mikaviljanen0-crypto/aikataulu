@@ -25,7 +25,7 @@ import { QuickBar, type TaskFilter } from "./QuickBar";
 import { ProjectsPanel } from "./ProjectsPanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { CalendarPanel } from "./CalendarPanel";
-import { getProjectPulse, isBehind } from "@/lib/progress";
+import { getProjectPulse, isBehind, expectedProgress } from "@/lib/progress";
 import { getWbs } from "@/lib/wbs";
 import type { ProjectListing, StoredProject, TrackingSnapshot } from "@/types/workspace";
 
@@ -204,6 +204,32 @@ export default function ScheduleApp() {
     () => new Set(normalizedTasks.filter((task) => isBehind(task, statusDate, extraDaysOff)).map((task) => task.id)),
     [normalizedTasks, statusDate, extraDaysOff],
   );
+
+  const lateTasks = useMemo(() => normalizedTasks
+    .map((task, index) => ({ task, index }))
+    .filter(({ task }) => behindIds.has(task.id))
+    .map(({ task, index }) => ({
+      id: task.id,
+      wbs: getWbs(normalizedTasks, index),
+      name: task.name,
+      actual: task.progress ?? 0,
+      expected: expectedProgress(task, statusDate, extraDaysOff),
+    }))
+    .sort((a, b) => (b.expected - b.actual) - (a.expected - a.actual)),
+    [normalizedTasks, behindIds, statusDate, extraDaysOff],
+  );
+
+  const changedCount = useMemo(() => {
+    const previous = snapshots.at(-1);
+    if (!previous) return 0;
+    const old = new Map(previous.tasks.map((task) => [task.id, task]));
+    return tasks.filter((task) => {
+      if (task.type === "summary") return false;
+      const last = old.get(task.id);
+      return !last || last.progress !== task.progress ||
+        last.actualStart !== task.actualStart || last.actualEnd !== task.actualEnd;
+    }).length;
+  }, [snapshots, tasks]);
 
   const visibleTasks = useMemo(() => {
     const term = taskQuery.trim().toLocaleLowerCase("fi-FI");
@@ -1030,6 +1056,15 @@ export default function ScheduleApp() {
         <HistoryPanel
           open={historyOpen}
           snapshots={snapshots}
+          projectName={projectName}
+          pulse={pulse}
+          changedCount={changedCount}
+          lateTasks={lateTasks}
+          onShowLate={() => {
+            setTaskFilter("behind");
+            setTaskQuery("");
+            setHistoryOpen(false);
+          }}
           onClose={() => setHistoryOpen(false)}
           onSave={saveSnapshot}
           onRestore={restoreSnapshot}
