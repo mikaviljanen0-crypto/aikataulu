@@ -33,7 +33,7 @@ export function QuickBar(props: Props) {
       <div className="quick-filters" role="group" aria-label="Näytettävät tehtävät">
         <button type="button" className={props.filter === "all" ? "active" : ""} onClick={() => props.onFilter("all")}>Kaikki</button>
         <button type="button" className={props.filter === "unfinished" ? "active" : ""} onClick={() => props.onFilter("unfinished")}>Kesken <b>{props.pulse.taskCount - props.pulse.completeCount}</b></button>
-        <button type="button" className={props.filter === "behind" ? "active risk" : ""} onClick={() => props.onFilter("behind")}>Jäljessä <b>{props.pulse.behindCount}</b></button>
+        <button type="button" className={props.filter === "behind" ? "active risk" : ""} onClick={() => props.onFilter("behind")}>Poikkeamat <b>{props.pulse.behindCount}</b></button>
       </div>
 
       <div className="quick-progress" title="Kestolla painotettu toteutuma">
@@ -43,7 +43,7 @@ export function QuickBar(props: Props) {
 
       <div className="quickbar-actions">
         <button type="button" onClick={props.onFit} title="Sovita koko aikataulu näkyviin">Sovita</button>
-        <button type="button" onClick={props.onHistory}>Tilannekuvat</button>
+        <button type="button" onClick={props.onHistory}>Työmaakokous</button>
         <button type="button" className="quick-project-button" onClick={props.onProjects}>Projektit</button>
         <button type="button" className="quick-print-button" onClick={props.onPrint}>Tulosta</button>
       </div>
