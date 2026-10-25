@@ -628,21 +628,22 @@ export default function ScheduleApp() {
       "Loppu",
       "Rakennus/alue",
       "Vastuu",
-      "EdeltajaID",
+      "EdeltajaWBS",
       "Viive",
       "Valmis%",
       "TotAlku",
       "TotLoppu",
     ];
+    const wbsById = new Map(normalizedTasks.map((task, index) => [task.id, getWbs(normalizedTasks, index)]));
     const rows = normalizedTasks.map((task, index) => [
-      index + 1,
+      getWbs(normalizedTasks, index),
       task.name,
       task.duration,
       task.start,
       workdayEnd(task.start, task.duration),
       task.area ?? "",
       task.owner ?? "",
-      task.predecessorId ?? "",
+      task.predecessorId ? wbsById.get(task.predecessorId) ?? "" : "",
       task.lagDays ?? 0,
       task.progress ?? 0,
       task.actualStart ?? "",
@@ -659,17 +660,21 @@ export default function ScheduleApp() {
       const text = (await file.text()).replace(/^\ufeff/, "");
       const lines = text.split(/\r?\n/).filter(Boolean);
       if (lines.length < 2) throw new Error();
-      const data = lines.slice(1).map(parseCsvLine);
-      const stamp = Date.now();
+      const headers = parseCsvLine(lines[0]);
+      const data = lines.slice(1).map(parseCsvLine).filter((row) => row[1]?.trim());
+      const stamp = Math.max(Date.now(), ...tasks.map((task) => task.id + 1));
+      const idByWbs = new Map(data.map((row, index) => [row[0], stamp + index]));
+      const hasWbsPredecessors = headers[7]?.trim() === "EdeltajaWBS";
       const imported: Task[] = data.map((row, index) => ({
         id: stamp + index,
         name: row[1] || "Työvaihe",
         duration: Math.max(1, Number(row[2]) || 1),
-        start: row[3] || statusDate,
-        level: 0,
+        start: nextWorkday(row[3] || statusDate),
+        level: Math.min(6, Math.max(0, row[0]?.split(".").length - 1 || 0)),
         type: "task",
         area: row[5] || undefined,
         owner: row[6] || undefined,
+        predecessorId: hasWbsPredecessors ? idByWbs.get(row[7]) : undefined,
         lagDays: Number(row[8]) || 0,
         progress: Math.min(100, Math.max(0, Number(row[9]) || 0)),
         actualStart: row[10] || undefined,
@@ -677,6 +682,10 @@ export default function ScheduleApp() {
       }));
       if (!imported.length) throw new Error();
       commit(imported);
+      const starts = imported.map((task) => task.start).sort();
+      const ends = imported.map((task) => workdayEnd(task.start, task.duration)).sort();
+      setRangeStart(addDays(starts[0], -7));
+      setRangeEnd(addDays(ends.at(-1)!, 14));
       setSelectedIds(new Set([imported[0].id]));
       setSelectionAnchorId(imported[0].id);
       flash(`${imported.length} työvaihetta tuotu CSV:stä.`);
