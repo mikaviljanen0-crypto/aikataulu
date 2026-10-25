@@ -10,4 +10,15 @@ export type Task = {
   collapsed?: boolean;
   predecessorId?: number;
   lagDays?: number;
+
+  area?: string;
+  owner?: string;
+
+  progress?: number;
+  started?: boolean;
+  actualStart?: string;
+  actualEnd?: string;
+
+  baselineStart?: string;
+  baselineDuration?: number;
 };

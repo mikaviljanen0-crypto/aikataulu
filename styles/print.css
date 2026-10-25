@@ -1,13 +1,522 @@
+@page {
+  size: A3 landscape;
+  margin: 10mm 10mm 12mm;
+}
+
 @media print {
-  .topbar nav {
-    display: none;
+  :root {
+    --print-blue: #155da8;
+    --print-blue-soft: #eef4fa;
+    --print-text: #1f2937;
+    --print-muted: #667085;
+    --print-line: #d8e0e8;
+    --print-plan: #43b9bb;
+    --print-target: #f2a43a;
+    --print-actual: #237b43;
+    --print-track: #e53935;
+    --print-now: #18a83b;
   }
 
-  .app-shell {
-    min-width: 0;
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: var(--print-text) !important;
+    font-family: "Segoe UI", Arial, sans-serif !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .snedo-shell {
+    display: block !important;
+    min-width: 0 !important;
+    background: #fff !important;
+  }
+
+  .workspace {
+    display: block !important;
+    min-height: 0 !important;
+    background: #fff !important;
+  }
+
+  .snedo-sidebar,
+  .topbar,
+  .view-panel,
+  .view-panel-backdrop,
+  .pane-resizer,
+  .projectbar,
+  .statusbar,
+  .schedule-message,
+  .hidden-file-input {
+    display: none !important;
+  }
+
+  .print-report-header {
+    display: grid !important;
+    grid-template-columns: 50mm 1fr 52mm;
+    align-items: center;
+    gap: 7mm;
+    min-height: 23mm;
+    padding: 0 0 5mm;
+    border-bottom: 0.45mm solid var(--print-blue);
+  }
+
+  .print-brand {
+    display: flex;
+    align-items: center;
+    gap: 3mm;
+  }
+
+  .print-brand-mark {
+    width: 10mm;
+    height: 10mm;
+    display: grid;
+    place-items: center;
+    border-radius: 2mm;
+    background: #f5a623;
+    color: #17202a;
+    font-size: 17pt;
+    line-height: 1;
+    font-weight: 800;
+  }
+
+  .print-brand-copy {
+    display: grid;
+    line-height: 1.05;
+  }
+
+  .print-brand-copy strong {
+    font-size: 14pt;
+    letter-spacing: .12em;
+    color: #17202a;
+  }
+
+  .print-brand-copy small {
+    margin-top: 1mm;
+    font-size: 7.2pt;
+    color: var(--print-muted);
+  }
+
+  .print-report-title {
+    display: grid;
+    justify-items: start;
+    align-content: center;
+  }
+
+  .print-report-title > span {
+    margin-bottom: 1.2mm;
+    color: var(--print-blue);
+    font-size: 7.4pt;
+    font-weight: 800;
+    letter-spacing: .12em;
+  }
+
+  .print-report-title > strong {
+    max-width: 210mm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 19pt;
+    line-height: 1.08;
+    font-weight: 650;
+    color: #17202a;
+  }
+
+  .print-report-title > small {
+    margin-top: 1.4mm;
+    color: var(--print-muted);
+    font-size: 8.5pt;
+  }
+
+  .print-status-card {
+    display: grid;
+    justify-items: end;
+    align-content: center;
+    padding: 3.2mm 4mm;
+    border: 0.25mm solid #d7e0e8;
+    border-radius: 2.5mm;
+    background: #f8fafc;
+  }
+
+  .print-status-card span {
+    color: var(--print-muted);
+    font-size: 6.8pt;
+    font-weight: 800;
+    letter-spacing: .08em;
+  }
+
+  .print-status-card strong {
+    margin-top: .8mm;
+    color: #17202a;
+    font-size: 15pt;
+    line-height: 1.05;
+    font-weight: 650;
+  }
+
+  .print-status-card small {
+    margin-top: 1.4mm;
+    color: var(--print-muted);
+    font-size: 7.2pt;
+  }
+
+  .print-legend {
+    display: flex !important;
+    align-items: center;
+    gap: 6mm;
+    min-height: 9mm;
+    padding: 2.2mm 0 2mm;
+    color: #536171;
+    font-size: 7.4pt;
+    border-bottom: 0.2mm solid #e5eaf0;
+  }
+
+  .print-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.4mm;
+    white-space: nowrap;
+  }
+
+  .print-legend i {
+    display: inline-block;
+    width: 6mm;
+    height: 2.2mm;
+    border-radius: .6mm;
+  }
+
+  .legend-plan { background: var(--print-plan); }
+  .legend-target { background: var(--print-target); }
+  .legend-actual { background: var(--print-actual); }
+
+  .legend-tracking {
+    height: 0 !important;
+    border-top: .65mm solid var(--print-track);
+    border-radius: 0 !important;
+  }
+
+  .legend-now {
+    width: 0 !important;
+    height: 4mm !important;
+    border-left: .65mm solid var(--print-now);
+    border-radius: 0 !important;
   }
 
   .schedule {
-    grid-template-columns: 45% 55%;
+    display: grid !important;
+    grid-template-columns: 39% 61% !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    border: 0 !important;
+    margin-top: 2mm;
+  }
+
+  .task-pane,
+  .gantt-pane {
+    overflow: visible !important;
+    min-width: 0 !important;
+    background: #fff !important;
+  }
+
+  .task-pane {
+    border-right: .3mm solid #b8c5d2;
+  }
+
+  .schedule-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+
+  .print-hide-column {
+    display: none !important;
+  }
+
+  .schedule-table thead tr,
+  .calendar-header {
+    height: 10.5mm !important;
+    max-height: 10.5mm !important;
+  }
+
+  .schedule-table th {
+    height: 10.5mm !important;
+    max-height: 10.5mm !important;
+    padding: 0 1.4mm 1.4mm !important;
+    vertical-align: bottom !important;
+    border: 0 !important;
+    border-bottom: .3mm solid #bcc8d4 !important;
+    background: #f4f7fa !important;
+    color: #4d5e70 !important;
+    font-size: 7pt !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+    letter-spacing: .025em;
+  }
+
+  .schedule-table tbody tr,
+  .gantt-row {
+    height: 6.2mm !important;
+    max-height: 6.2mm !important;
+  }
+
+  .schedule-table td {
+    height: 6.2mm !important;
+    max-height: 6.2mm !important;
+    padding: 0 1.4mm !important;
+    border: 0 !important;
+    border-bottom: .18mm solid #e2e7ec !important;
+    background: #fff !important;
+    color: #263544 !important;
+    font-size: 7.6pt !important;
+    vertical-align: middle !important;
+  }
+
+  .schedule-table tbody tr:last-child td {
+    border-bottom: 0 !important;
+  }
+
+  .schedule-table .summary-row td {
+    background: var(--print-blue-soft) !important;
+    color: #193653 !important;
+    font-weight: 700 !important;
+    border-top: .22mm solid #c7d7e7 !important;
+    border-bottom: .22mm solid #c7d7e7 !important;
+  }
+
+  .schedule-table .summary-row td:first-child {
+    box-shadow: inset 1.2mm 0 0 var(--print-blue) !important;
+  }
+
+  .schedule-table tr.selected td {
+    background: inherit !important;
+  }
+
+  .schedule-table input,
+  .schedule-table select {
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    color: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  .schedule-table .task-name-input {
+    padding-left: 0 !important;
+  }
+
+  .schedule-table input[type="date"] {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background: transparent !important;
+  }
+
+  .schedule-table input[type="date"]::-webkit-calendar-picker-indicator,
+  .schedule-table input[type="date"]::-webkit-inner-spin-button,
+  .schedule-table input[type="date"]::-webkit-clear-button {
+    display: none !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .schedule-table .number-column { width: 8% !important; }
+  .schedule-table .task-name-column { width: 38% !important; }
+  .schedule-table .duration-column { width: 9% !important; }
+  .schedule-table .date-column { width: 13% !important; }
+  .schedule-table .complete-column { width: 10% !important; }
+  .schedule-table .progress-column { width: 12% !important; }
+
+  .wbs-cell {
+    color: #506277 !important;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .readonly-date,
+  .schedule-table input[type="date"],
+  .schedule-table input[type="number"] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .complete-cell,
+  .progress-cell {
+    text-align: center !important;
+  }
+
+  .progress-cell input {
+    padding-right: 0 !important;
+    text-align: center !important;
+    font-weight: 700 !important;
+  }
+
+  .progress-cell span {
+    position: static !important;
+    margin-left: .7mm;
+    color: #7a8795 !important;
+    font-size: 7pt !important;
+  }
+
+  .column-resizer,
+  .collapse-button,
+  .resize-handle {
+    display: none !important;
+  }
+
+  .calendar-header {
+    background: #f4f7fa !important;
+    border-bottom: .3mm solid #bcc8d4 !important;
+  }
+
+  .calendar-month-row,
+  .calendar-week-row {
+    height: 5.25mm !important;
+  }
+
+  .month-segment,
+  .week-segment {
+    height: 5.25mm !important;
+    line-height: 5.25mm !important;
+    border-right: .16mm solid #d7dfe7 !important;
+    color: #526273 !important;
+    font-size: 6.8pt !important;
+  }
+
+  .month-segment {
+    font-weight: 650 !important;
+    text-transform: capitalize !important;
+  }
+
+  .week-segment {
+    font-weight: 600 !important;
+  }
+
+  .gantt-body {
+    background-image: linear-gradient(
+      to right,
+      transparent calc(100% - .16mm),
+      #edf1f5 calc(100% - .16mm)
+    ) !important;
+  }
+
+  .gantt-row {
+    border-bottom: .18mm solid #e2e7ec !important;
+    background: #fff !important;
+  }
+
+  .gantt-row.level-0 {
+    background: #f8fafc !important;
+  }
+
+  .task-bar {
+    top: 1.45mm !important;
+    height: 3.2mm !important;
+    min-width: 1.5mm !important;
+    border: .22mm solid #11757a !important;
+    border-radius: .6mm !important;
+    background: var(--print-plan) !important;
+    color: #133e43 !important;
+    padding: 0 1mm !important;
+  }
+
+  .task-bar strong {
+    font-size: 6.4pt !important;
+    font-weight: 700 !important;
+  }
+
+  .summary-bar {
+    top: 1.25mm !important;
+    height: 3.6mm !important;
+    border: .22mm solid #0d6b70 !important;
+    background: #2ea5a8 !important;
+  }
+
+  .summary-bar::before,
+  .summary-bar::after {
+    display: none !important;
+  }
+
+  .baseline-bar {
+    top: 4.8mm !important;
+    height: .9mm !important;
+    border: 0 !important;
+    border-radius: .4mm !important;
+    background: var(--print-target) !important;
+    opacity: 1 !important;
+  }
+
+  .progress-fill {
+    background: var(--print-actual) !important;
+    opacity: .88 !important;
+  }
+
+  .dependency-overlay path {
+    stroke: #8997a5 !important;
+    stroke-width: .35mm !important;
+  }
+
+  .dependency-overlay marker path {
+    fill: #8997a5 !important;
+  }
+
+  .tracking-overlay path {
+    stroke: var(--print-track) !important;
+    stroke-width: .55mm !important;
+    stroke-linejoin: round !important;
+    stroke-linecap: round !important;
+  }
+
+  .today-line {
+    width: .5mm !important;
+    background: var(--print-now) !important;
+  }
+
+  .today-line span {
+    display: none !important;
+  }
+
+  .nonwork-column.weekend {
+    background: rgba(65, 84, 102, .025) !important;
+  }
+
+  .nonwork-column.holiday {
+    background: rgba(21, 93, 168, .05) !important;
+    border-left: 0 !important;
+  }
+
+  .print-report-footer {
+    display: flex !important;
+    position: fixed;
+    left: 10mm;
+    right: 10mm;
+    bottom: 4mm;
+    justify-content: space-between;
+    align-items: center;
+    color: #7a8795;
+    font-size: 6.8pt;
+    letter-spacing: .015em;
+  }
+
+  .print-report-footer::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -2mm;
+    height: .2mm;
+    background: #dde4eb;
   }
 }
