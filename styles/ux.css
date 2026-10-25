@@ -1,0 +1,102 @@
+/* Snedo Aikataulu 1.1: työkalurakenne, projektit ja seuranta */
+
+.snedo-print { display: none; }
+
+.quickbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 47px;
+  background: #fafcfe;
+  border-bottom: 1px solid #dce4ec;
+  padding: 7px 11px;
+}
+.quickbar-search {
+  width: min(310px, 24vw);
+  min-width: 175px;
+  display: flex;
+  align-items: center;
+  height: 31px;
+  background: #fff;
+  border: 1px solid #d0dbe6;
+  border-radius: 5px;
+  padding: 0 7px;
+}
+.quickbar-search > span { font-size: 20px; color: #7990a5; margin-right: 4px; }
+.quickbar-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 11px; }
+.quickbar-search button { border: 0; min-height: 23px; height: 23px; padding: 0 5px; }
+.quick-filters { display: flex; align-items: center; gap: 3px; padding: 3px; border-radius: 5px; border: 1px solid #d9e1e9; background: #f1f5f9; }
+.quick-filters button { border: 0; border-radius: 3px; min-height: 24px; padding: 3px 9px; background: transparent; color: #607083; white-space: nowrap; font-size: 10px; }
+.quick-filters button.active { background: #fff; color: #174b7b; font-weight: 700; box-shadow: 0 1px 3px rgb(20 50 70 / 11%); }
+.quick-filters button.risk, .quick-filters button b { color: #ba4a2b; }
+.quick-filters button b { margin-left: 3px; font-weight: 700; }
+.quick-progress { width: 122px; flex-shrink: 0; margin: 0 4px; display: grid; gap: 4px; color: #718092; font-size: 9px; }
+.quick-progress span { display: flex; justify-content: space-between; gap: 7px; }
+.quick-progress strong { color: #265577; }
+.quick-progress-track { height: 5px; border-radius: 20px; overflow: hidden; background: #dce6ec; }
+.quick-progress-track div { height: 100%; background: linear-gradient(90deg, #39b5b7, #227b56); border-radius: 20px; }
+.quickbar-actions { margin-left: auto; display: flex; align-items: center; gap: 4px; }
+.quickbar-actions button { min-height: 29px; white-space: nowrap; border-color: #d3dce5; font-size: 10px; }
+.quickbar-actions .quick-project-button { font-weight: 650; border-color: #b5cbe0; }
+.quickbar-actions .quick-print-button { color: white; border-color: #155da8; background: #155da8; }
+
+.ux-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; justify-content: flex-end;
+  background: rgb(15 32 52 / 35%);
+}
+.ux-panel {
+  height: 100vh;
+  width: min(560px, 96vw);
+  overflow-y: auto;
+  background: #fff;
+  box-shadow: -14px 0 38px rgb(12 30 50 / 15%);
+}
+.ux-panel-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 23px 23px 19px;
+  border-bottom: 1px solid #dfe5ed;
+  background: #f8fafc;
+}
+.ux-panel-header div > span { color: #155da8; font-size: 9px; font-weight: 800; letter-spacing: .13em; }
+.ux-panel-header h2 { font-size: 23px; font-weight: 650; margin: 6px 0 5px; color: #1c2d42; }
+.ux-panel-header p { font-size: 11px; color: #718197; margin: 0; }
+.ux-panel-header button { min-height: 29px; font-size: 19px; width: 32px; border: 0; border-radius: 6px; background: #e9eff5; }
+.new-project-card { margin: 18px 22px; padding: 17px; border: 1px solid #d4e2ee; background: #f7fbff; border-radius: 7px; display: grid; gap: 11px; }
+.new-project-card > strong { font-size: 13px; color: #264b73; }
+.new-project-fields { display: grid; grid-template-columns: 110px 1fr auto; gap: 8px; align-items: end; }
+.new-project-card label, .new-project-fields label { display: grid; gap: 5px; color: #637387; font-size: 10px; font-weight: 650; }
+.new-project-card input, .projects-search input { border: 1px solid #cbd7e4; height: 31px; border-radius: 4px; background: #fff; padding: 5px 8px; min-width: 0; font-size: 11px; }
+.new-project-card button, .ux-primary { background: #155da8; color: #fff; border: 1px solid #155da8; font-weight: 650; border-radius: 4px; min-height: 31px; }
+.new-project-card button:hover, .ux-primary:hover { background: #0c4d91; color: #fff; }
+.new-project-card button:disabled { background: #91a9c1; }
+.projects-search { margin: 15px 22px 10px; display: grid; gap: 5px; }
+.projects-search label { color: #2e445c; font-size: 11px; font-weight: 750; }
+.projects-search input { width: 100%; }
+.project-card-list, .snapshot-list { margin: 0 22px 16px; display: grid; gap: 8px; }
+.project-card-item, .snapshot-item { border: 1px solid #dfe5eb; background: #fff; border-radius: 6px; padding: 11px; display: flex; align-items: center; gap: 12px; }
+.project-card-item.current { border-color: #b6cee5; background: #f6faff; }
+.project-tile-mark, .snapshot-date-icon { height: 38px; width: 38px; display: grid; place-items: center; background: #e7f0f9; color: #155da8; border-radius: 6px; flex-shrink: 0; font-size: 18px; }
+.project-tile-content, .snapshot-description { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.project-tile-content strong, .snapshot-description strong { color: #1d3148; font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.project-tile-content > span { color: #66788b; font-size: 10px; }
+.project-tile-content small, .snapshot-description small { color: #94a0ad; font-size: 9px; }
+.project-tile-actions { display: flex; gap: 4px; }
+.project-tile-actions button, .snapshot-item button { font-size: 10px; }
+.snapshot-description strong span { color: #237b56; }
+.snapshot-description p { margin: 0; color: #53657b; font-size: 10px; }
+.ux-empty { border: 1px dashed #cbd7e3; padding: 22px; color: #7f8d9c; text-align: center; border-radius: 6px; font-size: 11px; }
+.ux-panel-note { margin: 12px 22px 26px; padding: 11px 12px; border-radius: 5px; background: #f6f8fa; border-left: 3px solid #b8cadb; color: #6d7d8d; line-height: 1.5; font-size: 10px; }
+
+.schedule-table tbody tr:not(.summary-row):hover td { background: #f3f8fd; }
+.schedule-table tbody tr.selected td { background: #e4f0fb; }
+.schedule-table .behind-row .wbs-cell { box-shadow: inset 3px 0 #e6985b; }
+.gantt-row.selected-gantt-row { background-color: rgba(21, 93, 168, .06); }
+.gantt-row.behind-gantt-row { box-shadow: inset 3px 0 #e6a06e; }
+.task-bar.selected-gantt-bar { outline: 2px solid #155da8; outline-offset: 2px; }
+
+@media (max-width: 1450px) {
+  .quick-progress { display: none; }
+  .quickbar-actions { gap: 3px; }
+  .quickbar { gap: 6px; }
+}
