@@ -13,6 +13,7 @@ type Props = {
   statusDate: string;
   showBaseline: boolean;
   showTracking: boolean;
+  extraDaysOff: string[];
 };
 
 const MAX_ROWS = 38;
@@ -48,13 +49,13 @@ function segments(start: string, count: number, unit: "month" | "week") {
   return out;
 }
 
-function trackingDate(task: Task, statusDate: string): string {
+function trackingDate(task: Task, statusDate: string, extraDaysOff: string[]): string {
   const start = task.baselineStart ?? task.start;
   const duration = task.baselineDuration ?? task.duration;
   const progress = Math.max(0, Math.min(100, task.progress ?? 0));
   if (progress === 0) return start > statusDate ? statusDate : start;
-  if (progress === 100) return task.actualEnd || workdayEnd(start, duration);
-  return addWorkdays(start, Math.max(0, Math.round((duration - 1) * progress / 100)));
+  if (progress === 100) return task.actualEnd || workdayEnd(start, duration, extraDaysOff);
+  return addWorkdays(start, Math.max(0, Math.round((duration - 1) * progress / 100)), extraDaysOff);
 }
 
 function xPercent(value: string, start: string, total: number): number {
@@ -72,7 +73,7 @@ function barStyle(begin: string, finish: string, start: string, total: number) {
 export function PrintReport(props: Props) {
   const leaves = props.fullTasks.filter((task) => task.type !== "summary");
   const starts = leaves.map((task) => task.start).sort();
-  const ends = leaves.map((task) => workdayEnd(task.start, task.duration)).sort();
+  const ends = leaves.map((task) => workdayEnd(task.start, task.duration, props.extraDaysOff)).sort();
   const first = starts[0] ?? props.statusDate;
   const last = ends.at(-1) ?? props.statusDate;
   const start = addDays(first, -5);
@@ -93,7 +94,7 @@ export function PrintReport(props: Props) {
       {pages.map((rows, pageIndex) => {
         const rowHeight = Math.min(10, Math.max(5.6, 205 / Math.max(1, rows.length)));
         const trackingPoints = rows.map((task, i) => ({
-          x: xPercent(trackingDate(task, props.statusDate), start, total) * 10,
+          x: xPercent(trackingDate(task, props.statusDate, props.extraDaysOff), start, total) * 10,
           y: i * 28 + 14,
         }));
         const line = trackingPoints.length
@@ -130,14 +131,14 @@ export function PrintReport(props: Props) {
                 </div>
                 {rows.map((task) => {
                   const originalIndex = props.fullTasks.findIndex((value) => value.id === task.id);
-                  const behind = isBehind(task, props.statusDate);
+                  const behind = isBehind(task, props.statusDate, props.extraDaysOff);
                   return (
                     <div key={task.id} className={`report-table-row ${task.type === "summary" ? "summary" : ""} ${behind ? "late" : ""}`}>
                       <span>{originalIndex < 0 ? "" : getWbs(props.fullTasks, originalIndex)}</span>
                       <strong style={{ paddingLeft: `${Math.min(18, task.level * 5)}px` }}>{task.name}</strong>
                       <span>{task.duration}</span>
                       <span>{fiDate(task.start)}</span>
-                      <span>{fiDate(workdayEnd(task.start, task.duration))}</span>
+                      <span>{fiDate(workdayEnd(task.start, task.duration, props.extraDaysOff))}</span>
                       <span>{(task.progress ?? 0) >= 100 ? "Kyllä" : "Ei"}</span>
                       <span>{Math.round(task.progress ?? 0)} %</span>
                     </div>
@@ -157,9 +158,9 @@ export function PrintReport(props: Props) {
                 <div className="report-chart-body" style={{ height: `calc(var(--report-row-height) * ${rows.length})` }}>
                   {weekSegments.map((segment) => <div key={segment.key} className="report-week-gridline" style={{ left: `${segment.first / total * 100}%` }} />)}
                   {rows.map((task, i) => {
-                    const lastDay = workdayEnd(task.start, task.duration);
+                    const lastDay = workdayEnd(task.start, task.duration, props.extraDaysOff);
                     const baselineEnd = task.baselineStart && task.baselineDuration
-                      ? workdayEnd(task.baselineStart, task.baselineDuration) : undefined;
+                      ? workdayEnd(task.baselineStart, task.baselineDuration, props.extraDaysOff) : undefined;
                     const current = barStyle(task.start, lastDay, start, total);
                     const progress = Math.max(0, Math.min(100, task.progress ?? 0));
                     return (
