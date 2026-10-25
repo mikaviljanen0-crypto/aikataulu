@@ -1,5 +1,6 @@
 import { workdayEnd } from "@/lib/calendar";
 import { getWbs } from "@/lib/wbs";
+import { isBehind } from "@/lib/progress";
 import type { Task } from "@/types/schedule";
 
 type TaskTableProps = {
@@ -15,6 +16,7 @@ type TaskTableProps = {
   onSelect: (id: number, options: { additive: boolean; range: boolean }) => void;
   onUpdate: (id: number, patch: Partial<Task>) => void;
   onToggleCollapse: (id: number) => void;
+  onContextMenu: (id: number, x: number, y: number) => void;
 };
 
 function displayDate(value: string): string {
@@ -35,6 +37,7 @@ export function TaskTable({
   onSelect,
   onUpdate,
   onToggleCollapse,
+  onContextMenu,
 }: TaskTableProps) {
   function beginColumnResize(event: React.PointerEvent<HTMLButtonElement>) {
     event.preventDefault();
@@ -110,6 +113,7 @@ export function TaskTable({
                   selectedIds.has(task.id) ? "selected" : "",
                   task.type === "summary" ? "summary-row" : "",
                   criticalTaskIds.has(task.id) ? "critical-row" : "",
+                  isBehind(task, statusDate) ? "behind-row" : "",
                 ].join(" ")}
                 onClick={(event) =>
                   onSelect(task.id, {
@@ -117,6 +121,11 @@ export function TaskTable({
                     range: event.shiftKey,
                   })
                 }
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  onSelect(task.id, { additive: false, range: false });
+                  onContextMenu(task.id, event.clientX, event.clientY);
+                }}
               >
                 <td className="wbs-cell">{getWbs(tasks, originalIndex)}</td>
 
@@ -136,7 +145,9 @@ export function TaskTable({
                     className="task-name-input"
                     style={{ paddingLeft: 7 + task.level * 16 }}
                     value={task.name}
-                    onFocus={() => onSelect(task.id, { additive: false, range: false })}
+                    onFocus={() => {
+                      if (!selectedIds.has(task.id)) onSelect(task.id, { additive: false, range: false });
+                    }}
                     onChange={(event) => onUpdate(task.id, { name: event.target.value })}
                   />
                 </td>
