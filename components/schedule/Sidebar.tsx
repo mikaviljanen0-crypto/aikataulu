@@ -5,12 +5,12 @@ type Props = {
 
 const rows = [
   ["general", "▦", "Yleisaikataulu"],
-  ["week", "7", "Viikkoaikataulu"],
+  ["week", "7", "Viikkonäkymä"],
   ["tracking", "✓", "Toteumaseuranta"],
-  ["versions", "◫", "Aikatauluversiot"],
+  ["versions", "◫", "Tilannekuvat"],
   ["calendar", "□", "Kalenteri"],
   ["projects", "▣", "Projektit"],
-  ["import", "⇩", "Tocoman-tuonti"],
+  ["import", "⇩", "Tuo JSON-tiedosto"],
 ];
 
 export function Sidebar({ active, onNavigate }: Props) {
@@ -43,8 +43,8 @@ export function Sidebar({ active, onNavigate }: Props) {
 
       <div className="sidebar-spacer" />
       <div className="sidebar-user">
-        <div className="user-avatar">MV</div>
-        <div><strong>Mika Viljanen</strong><span>Pääkäyttäjä</span></div>
+        <div className="user-avatar">S</div>
+        <div><strong>Paikallinen työtila</strong><span>Tiedot tällä selaimella</span></div>
       </div>
     </aside>
   );
