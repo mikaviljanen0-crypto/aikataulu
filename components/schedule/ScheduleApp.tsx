@@ -20,18 +20,19 @@ import { TaskTable } from "./TaskTable";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
 import { PrintHeader } from "./PrintHeader";
+import { PrintReport } from "./PrintReport";
+import { QuickBar, type TaskFilter } from "./QuickBar";
+import { ProjectsPanel } from "./ProjectsPanel";
+import { HistoryPanel } from "./HistoryPanel";
+import { getProjectPulse, isBehind } from "@/lib/progress";
+import { getWbs } from "@/lib/wbs";
+import type { ProjectListing, StoredProject, TrackingSnapshot } from "@/types/workspace";
 
 const STORAGE_KEY = "snedo-aikataulu-project-v1";
 const VIEW_STORAGE_KEY = "snedo-aikataulu-view-v1";
-
-type StoredProject = {
-  version: 1;
-  projectNumber: string;
-  projectName: string;
-  scheduleName: string;
-  statusDate: string;
-  tasks: Task[];
-};
+const PROJECT_INDEX_KEY = "snedo-aikataulu-project-list-v1";
+const ACTIVE_PROJECT_KEY = "snedo-aikataulu-active-project-v1";
+const PROJECT_DATA_PREFIX = "snedo-aikataulu-stored-";
 
 function cloneTasks(tasks: Task[]): Task[] {
   return tasks.map((task) => ({ ...task }));
@@ -94,6 +95,13 @@ export default function ScheduleApp() {
   const [showToday, setShowToday] = useState(true);
   const [showBaseline, setShowBaseline] = useState(true);
   const [activeNav, setActiveNav] = useState("general");
+  const [taskQuery, setTaskQuery] = useState("");
+  const [taskFilter, setTaskFilter] = useState<TaskFilter>("all");
+  const [projectsOpen, setProjectsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [activeProjectId, setActiveProjectId] = useState("main-project");
+  const [catalog, setCatalog] = useState<ProjectListing[]>([]);
+  const [snapshots, setSnapshots] = useState<TrackingSnapshot[]>([]);
 
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -119,6 +127,44 @@ export default function ScheduleApp() {
       }
     }
 
+    try {
+      const rawCatalog = window.localStorage.getItem(PROJECT_INDEX_KEY);
+      const existing = rawCatalog ? JSON.parse(rawCatalog) as ProjectListing[] : [];
+      if (Array.isArray(existing) && existing.length) {
+        setCatalog(existing);
+        const requestedId = window.localStorage.getItem(ACTIVE_PROJECT_KEY);
+        const entry = existing.find((item) => item.id === requestedId) ?? existing[0];
+        const rawProject = window.localStorage.getItem(PROJECT_DATA_PREFIX + entry.id);
+        if (rawProject) {
+          const stored = JSON.parse(rawProject) as StoredProject;
+          if (Array.isArray(stored.tasks) && stored.tasks.length) {
+            setProjectNumber(stored.projectNumber || entry.projectNumber);
+            setProjectName(stored.projectName || entry.projectName);
+            setScheduleName(stored.scheduleName || "Yleisaikataulu");
+            setStatusDate(stored.statusDate || "2026-08-31");
+            setTasks(stored.tasks);
+            setSnapshots(Array.isArray(stored.snapshots) ? stored.snapshots : []);
+            setSelectedIds(new Set([stored.tasks[0].id]));
+            setSelectionAnchorId(stored.tasks[0].id);
+          }
+        }
+        setActiveProjectId(entry.id);
+      } else {
+        const first = {
+          id: "main-project",
+          projectNumber: "2607",
+          projectName: "As Oy Kissankello",
+          scheduleName: "Yleisaikataulu",
+          updatedAt: new Date().toISOString(),
+        };
+        setCatalog([first]);
+        window.localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify([first]));
+        window.localStorage.setItem(ACTIVE_PROJECT_KEY, first.id);
+      }
+    } catch {
+      // Jos projektihakemisto on viallinen, alkuperäinen tallennus säilytetään.
+    }
+
     const savedView = window.localStorage.getItem(VIEW_STORAGE_KEY);
     if (savedView) {
       try {
@@ -134,6 +180,7 @@ export default function ScheduleApp() {
         setShowWeekends(view.showWeekends ?? true);
         setShowToday(view.showToday ?? true);
         setShowBaseline(view.showBaseline ?? true);
+        setTaskFilter(view.taskFilter ?? "all");
       } catch {
         // Näkymä palautuu oletukseen.
       }
@@ -143,17 +190,34 @@ export default function ScheduleApp() {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const normalizedTasks = useMemo(() => normalizeSummaries(tasks), [tasks]);
+  const pulse = useMemo(() => getProjectPulse(normalizedTasks, statusDate), [normalizedTasks, statusDate]);
   const criticalTaskIds = useMemo(
     () => getCriticalTaskIds(normalizedTasks),
     [normalizedTasks],
   );
-  const visibleTasks = useMemo(
-    () =>
-      normalizedTasks.filter(
-        (_, index) => !isHiddenByCollapsedParent(normalizedTasks, index),
-      ),
-    [normalizedTasks],
-  );
+  const visibleTasks = useMemo(() => {
+    const search = taskQuery.trim().toLocaleLowerCase("fi-FI");
+    const matches = (task: Task) => {
+      const textMatch = !search || [task.name, task.area ?? "", task.owner ?? ""]
+        .some((value) => value.toLocaleLowerCase("fi-FI").includes(search));
+      const filterMatch =
+        taskFilter === "all" ||
+        (taskFilter === "unfinished" && (task.progress ?? 0) < 100) ||
+        (taskFilter === "behind" && isBehind(task, statusDate));
+      return textMatch && filterMatch;
+    };
+    if (!search && taskFilter === "all") {
+      return normalizedTasks.filter((_, index) => !isHiddenByCollapsedParent(normalizedTasks, index));
+    }
+    const matchIds = new Set(normalizedTasks.filter((task) => task.type !== "summary" && matches(task)).map((task) => task.id));
+    return normalizedTasks.filter((task, index) => {
+      if (isHiddenByCollapsedParent(normalizedTasks, index)) return false;
+      if (matchIds.has(task.id)) return true;
+      if (task.type !== "summary") return false;
+      return getDescendantIndexes(normalizedTasks, index)
+        .some((childIndex) => matchIds.has(normalizedTasks[childIndex].id));
+    });
+  }, [normalizedTasks, taskQuery, taskFilter, statusDate]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -164,9 +228,23 @@ export default function ScheduleApp() {
       scheduleName,
       statusDate,
       tasks,
+      snapshots,
     };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [loaded, projectNumber, projectName, scheduleName, statusDate, tasks]);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      window.localStorage.setItem(PROJECT_DATA_PREFIX + activeProjectId, JSON.stringify(payload));
+      window.localStorage.setItem(ACTIVE_PROJECT_KEY, activeProjectId);
+      const existing = JSON.parse(window.localStorage.getItem(PROJECT_INDEX_KEY) || "[]") as ProjectListing[];
+      const updated = Array.isArray(existing) ? [...existing] : [];
+      const index = updated.findIndex((item) => item.id === activeProjectId);
+      const row = { id: activeProjectId, projectName, projectNumber, scheduleName, updatedAt: new Date().toISOString() };
+      if (index < 0) updated.push(row);
+      else updated[index] = row;
+      window.localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify(updated));
+    } catch {
+      // Selaintallennuksen rajoitus ei saa estää työskentelyä. JSON-vienti on varmuuskopio.
+    }
+  }, [loaded, activeProjectId, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -184,6 +262,7 @@ export default function ScheduleApp() {
         showWeekends,
         showToday,
         showBaseline,
+        taskFilter,
       }),
     );
   }, [
@@ -199,6 +278,7 @@ export default function ScheduleApp() {
     showWeekends,
     showToday,
     showBaseline,
+    taskFilter,
   ]);
 
   function flash(text: string) {
