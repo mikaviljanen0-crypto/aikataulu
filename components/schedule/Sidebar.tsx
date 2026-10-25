@@ -43,8 +43,8 @@ export function Sidebar({ active, onNavigate }: Props) {
 
       <div className="sidebar-spacer" />
       <div className="sidebar-user">
-        <div className="user-avatar">MV</div>
-        <div><strong>Mika Viljanen</strong><span>Pääkäyttäjä</span></div>
+        <div className="user-avatar">S</div>
+        <div><strong>Paikallinen työtila</strong><span>Tallennus tähän selaimeen</span></div>
       </div>
     </aside>
   );
