@@ -211,7 +211,7 @@ export default function ScheduleApp() {
     }
     const matchIds = new Set(normalizedTasks.filter((task) => task.type !== "summary" && matches(task)).map((task) => task.id));
     return normalizedTasks.filter((task, index) => {
-      if (isHiddenByCollapsedParent(normalizedTasks, index)) return false;
+      // Haku avaa osuvat alatehtävät myös silloin, kun otsikkotaso oli supistettu.
       if (matchIds.has(task.id)) return true;
       if (task.type !== "summary") return false;
       return getDescendantIndexes(normalizedTasks, index)
