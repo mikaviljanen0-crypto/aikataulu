@@ -21,7 +21,7 @@ export function getDescendantIndexes(tasks: Task[], index: number): number[] {
   return indexes;
 }
 
-export function normalizeSummaries(tasks: Task[]): Task[] {
+export function normalizeSummaries(tasks: Task[], extraDaysOff: string[] = []): Task[] {
   return tasks.map((task, index) => {
     const directChildren = getDescendantIndexes(tasks, index)
       .map((childIndex) => tasks[childIndex])
@@ -31,7 +31,7 @@ export function normalizeSummaries(tasks: Task[]): Task[] {
 
     const earliest = directChildren.map((child) => child.start).sort()[0];
     const latest = directChildren
-      .map((child) => workdayEnd(child.start, child.duration))
+      .map((child) => workdayEnd(child.start, child.duration, extraDaysOff))
       .sort()
       .at(-1)!;
 
@@ -60,7 +60,7 @@ export function normalizeSummaries(tasks: Task[]): Task[] {
       ...task,
       type: "summary",
       start: earliest,
-      duration: workdaysInclusive(earliest, latest),
+      duration: workdaysInclusive(earliest, latest, extraDaysOff),
       progress: Math.round(weightedProgress),
       started: directChildren.some((child) => (child.progress ?? 0) > 0),
       actualStart: actualStarts[0],
