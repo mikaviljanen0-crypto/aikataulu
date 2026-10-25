@@ -1107,7 +1107,7 @@ export default function ScheduleApp() {
           onRestore={restoreSnapshot}
         />
 
-        <CalendarPanel
+        {calendarOpen && <CalendarPanel
           extraDaysOff={extraDaysOff}
           onAdd={(day) => {
             if (extraDaysOff.includes(day)) return;
@@ -1128,7 +1128,7 @@ export default function ScheduleApp() {
             flash("Vapaapäivä poistettu kalenterista.");
           }}
           onClose={() => setCalendarOpen(false)}
-        />
+        />}
 
         <footer className="statusbar">
           <span>{projectNumber} · {projectName}</span>
