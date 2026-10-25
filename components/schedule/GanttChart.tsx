@@ -36,6 +36,7 @@ type Props = {
   statusDate: string;
   showBaseline: boolean;
   showTrackingLine: boolean;
+  extraDaysOff: string[];
   onUpdate: (id: number, patch: Partial<Task>) => void;
 };
 
@@ -62,6 +63,7 @@ export function GanttChart({
   statusDate,
   showBaseline,
   showTrackingLine,
+  extraDaysOff,
   onUpdate,
 }: Props) {
   const ganttRef = useRef<HTMLDivElement>(null);
@@ -97,7 +99,7 @@ export function GanttChart({
       weekKey: `${date.getFullYear()}-${isoWeekNumber(date)}`,
       weekLabel: `Vko ${isoWeekNumber(date)}`,
       weekend: date.getDay() === 0 || date.getDay() === 6,
-      workday: isWorkday(value),
+      workday: isWorkday(value, extraDaysOff),
     };
   });
 
@@ -139,7 +141,7 @@ export function GanttChart({
       0,
       Math.round((Math.max(1, targetDuration) - 1) * (progress / 100)),
     );
-    return addWorkdays(targetStart, completedTargetDays);
+    return addWorkdays(targetStart, completedTargetDays, extraDaysOff);
   }
 
   const trackingPoints = visibleTasks.map((task, index) => ({
@@ -162,7 +164,7 @@ export function GanttChart({
     const predecessor = visibleTasks[predecessorIndex];
     if (!predecessor || predecessorIndex < 0) return [];
 
-    const predecessorEnd = workdayEnd(predecessor.start, predecessor.duration);
+    const predecessorEnd = workdayEnd(predecessor.start, predecessor.duration, extraDaysOff);
     const predecessorEndX =
       (dateOffsetFrom(predecessorEnd, rangeStart) + 1) * dayWidth;
     const targetStartX = dateOffsetFrom(task.start, rangeStart) * dayWidth;
@@ -192,7 +194,7 @@ export function GanttChart({
     const startX = event.clientX;
     const originalStart = task.start;
     const originalDuration = task.duration;
-    const originalEnd = workdayEnd(originalStart, originalDuration);
+    const originalEnd = workdayEnd(originalStart, originalDuration, extraDaysOff);
     const originalCalendarWidth =
       (daysBetween(originalStart, originalEnd) + 1) * dayWidth;
 
@@ -228,14 +230,14 @@ export function GanttChart({
 
       if (mode === "resize-end") {
         const newEnd = addDays(originalEnd, deltaDays);
-        onUpdate(task.id, { duration: workdaysInclusive(originalStart, newEnd) });
+        onUpdate(task.id, { duration: workdaysInclusive(originalStart, newEnd, extraDaysOff) });
         return;
       }
 
       const newStart = addDays(originalStart, deltaDays);
       onUpdate(task.id, {
         start: newStart,
-        duration: workdaysInclusive(newStart, originalEnd),
+        duration: workdaysInclusive(newStart, originalEnd, extraDaysOff),
       });
     };
 
@@ -340,14 +342,14 @@ export function GanttChart({
 
         {visibleTasks.map((task) => {
           const originalIndex = tasks.findIndex((item) => item.id === task.id);
-          const end = workdayEnd(task.start, task.duration);
+          const end = workdayEnd(task.start, task.duration, extraDaysOff);
           const calendarDays = Math.max(1, daysBetween(task.start, end) + 1);
           const left = dateOffsetFrom(task.start, rangeStart) * dayWidth;
           const width = Math.max(dayWidth, calendarDays * dayWidth);
 
           const baselineEnd =
             task.baselineStart && task.baselineDuration
-              ? workdayEnd(task.baselineStart, task.baselineDuration)
+              ? workdayEnd(task.baselineStart, task.baselineDuration, extraDaysOff)
               : undefined;
           const baselineWidth =
             task.baselineStart && baselineEnd
