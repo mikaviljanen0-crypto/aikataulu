@@ -138,11 +138,24 @@ export function TaskTable({
                     </button>
                   )}
                   <input
+                    key={`${task.id}:${task.name}`}
                     className="task-name-input"
                     style={{ paddingLeft: 7 + task.level * 16 }}
-                    value={task.name}
-                    onFocus={() => onSelect(task.id, { additive: false, range: false })}
-                    onChange={(event) => onUpdate(task.id, { name: event.target.value })}
+                    defaultValue={task.name}
+                    onFocus={() => {
+                      if (!selectedIds.has(task.id)) onSelect(task.id, { additive: false, range: false });
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") event.currentTarget.blur();
+                      if (event.key === "Escape") {
+                        event.currentTarget.value = task.name;
+                        event.currentTarget.blur();
+                      }
+                    }}
+                    onBlur={(event) => {
+                      const newName = event.currentTarget.value.trim();
+                      if (newName && newName !== task.name) onUpdate(task.id, { name: newName });
+                    }}
                   />
                 </td>
 
