@@ -7,10 +7,10 @@ const rows = [
   ["general", "▦", "Yleisaikataulu"],
   ["week", "7", "Viikkoaikataulu"],
   ["tracking", "✓", "Toteumaseuranta"],
-  ["versions", "◫", "Aikatauluversiot"],
+  ["versions", "◫", "Seurantahistoria"],
   ["calendar", "□", "Kalenteri"],
   ["projects", "▣", "Projektit"],
-  ["import", "⇩", "Tocoman-tuonti"],
+  ["import", "⇩", "Tuo JSON"],
 ];
 
 export function Sidebar({ active, onNavigate }: Props) {
