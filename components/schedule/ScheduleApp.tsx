@@ -95,6 +95,7 @@ export default function ScheduleApp() {
   const [showBaseline, setShowBaseline] = useState(true);
   const [activeNav, setActiveNav] = useState("general");
   const [taskQuery, setTaskQuery] = useState("");
+  const [contextMenu, setContextMenu] = useState<{ id: number; x: number; y: number } | null>(null);
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("all");
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -796,8 +797,8 @@ export default function ScheduleApp() {
         return;
       }
       if (editing || projectsOpen || historyOpen || viewPanelOpen) return;
-      if (control && key === "z") { event.preventDefault(); undo(); }
-      else if (control && (key === "y" || (key === "z" && event.shiftKey))) { event.preventDefault(); redo(); }
+      if (control && (key === "y" || (key === "z" && event.shiftKey))) { event.preventDefault(); redo(); }
+      else if (control && key === "z") { event.preventDefault(); undo(); }
       else if (control && key === "d") { event.preventDefault(); copyTasks(); }
       else if (!control && (key === "delete" || key === "backspace")) {
         if (window.confirm(`Poistetaanko ${selectedIds.size} valittua työvaihetta?`)) removeTasks();
@@ -812,6 +813,7 @@ export default function ScheduleApp() {
   /* eslint-enable react-hooks/exhaustive-deps */
 
   function navigate(key: string) {
+    setContextMenu(null);
     setActiveNav(key);
     if (key === "general") return;
     if (key === "tracking") {
@@ -842,6 +844,7 @@ export default function ScheduleApp() {
 
       <section className="workspace">
         <TopBar
+          modeLabel={activeNav === "tracking" ? "TOTEUMASEURANTA" : activeNav === "week" ? "VIIKKOAIKATAULU" : "YLEISAIKATAULU"}
           onAddTask={addTask}
           onRemoveTask={removeTasks}
           onCopyTask={copyTasks}
@@ -904,6 +907,7 @@ export default function ScheduleApp() {
             visibleTasks={visibleTasks}
             selectedIds={selectedIds}
             criticalTaskIds={criticalTaskIds}
+            onContextMenu={(id, x, y) => setContextMenu({ id, x, y })}
             showPlanningColumns={showPlanningColumns}
             showTrackingColumns={showTrackingColumns}
             statusDate={statusDate}
@@ -925,6 +929,8 @@ export default function ScheduleApp() {
             tasks={normalizedTasks}
             visibleTasks={visibleTasks}
             criticalTaskIds={criticalTaskIds}
+            selectedIds={selectedIds}
+            onSelect={(id) => selectTask(id, { additive: false, range: false })}
             rangeStart={rangeStart}
             rangeEnd={rangeEnd}
             zoom={timelineZoom}
@@ -937,6 +943,31 @@ export default function ScheduleApp() {
             onUpdate={updateTask}
           />
         </section>
+
+        {contextMenu && (
+          <>
+            <button type="button" aria-label="Sulje rivivalikko" className="context-menu-backdrop" onClick={() => setContextMenu(null)} />
+            <div className="task-context-menu" role="menu" style={{
+              left: Math.max(5, Math.min(contextMenu.x, window.innerWidth - 205)),
+              top: Math.max(5, Math.min(contextMenu.y, window.innerHeight - 240)),
+            }}>
+              <strong>Työvaiheen toiminnot</strong>
+              <button type="button" onClick={() => { addTask(); setContextMenu(null); }}>+ Lisää työvaihe</button>
+              <button type="button" onClick={() => { copyTasks(); setContextMenu(null); }}>Kopioi valittu</button>
+              <button type="button" onClick={() => { indentTasks(); setContextMenu(null); }}>Sisennä</button>
+              <button type="button" onClick={() => { outdentTasks(); setContextMenu(null); }}>Ulonna</button>
+              <button type="button" onClick={() => {
+                const task = tasks.find((item) => item.id === contextMenu.id);
+                if (task && task.type !== "summary") updateTask(task.id, { progress: 100, started: true, actualStart: task.actualStart ?? task.start, actualEnd: statusDate });
+                setContextMenu(null);
+              }}>Merkitse valmiiksi</button>
+              <button type="button" className="danger-text" onClick={() => {
+                if (window.confirm("Poistetaanko valittu työvaihe ja sen alatehtävät?")) removeTasks();
+                setContextMenu(null);
+              }}>Poista työvaihe</button>
+            </div>
+          </>
+        )}
 
         <PrintReport
           tasks={visibleTasks}
