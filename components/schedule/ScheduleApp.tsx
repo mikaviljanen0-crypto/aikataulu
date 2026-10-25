@@ -24,6 +24,7 @@ import { PrintReport } from "./PrintReport";
 import { QuickBar, type TaskFilter } from "./QuickBar";
 import { ProjectsPanel } from "./ProjectsPanel";
 import { HistoryPanel } from "./HistoryPanel";
+import { CalendarPanel } from "./CalendarPanel";
 import { getProjectPulse, isBehind } from "@/lib/progress";
 import { getWbs } from "@/lib/wbs";
 import type { ProjectListing, StoredProject, TrackingSnapshot } from "@/types/workspace";
@@ -102,6 +103,8 @@ export default function ScheduleApp() {
   const [activeProjectId, setActiveProjectId] = useState("main-project");
   const [catalog, setCatalog] = useState<ProjectListing[]>([]);
   const [snapshots, setSnapshots] = useState<TrackingSnapshot[]>([]);
+  const [extraDaysOff, setExtraDaysOff] = useState<string[]>([]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -119,6 +122,7 @@ export default function ScheduleApp() {
           setScheduleName(parsed.scheduleName ?? "Yleisaikataulu");
           setStatusDate(parsed.statusDate ?? new Date().toISOString().slice(0, 10));
           setTasks(parsed.tasks);
+          setExtraDaysOff(Array.isArray(parsed.extraDaysOff) ? parsed.extraDaysOff : []);
           setSelectedIds(new Set([parsed.tasks[0].id]));
           setSelectionAnchorId(parsed.tasks[0].id);
         }
@@ -143,6 +147,7 @@ export default function ScheduleApp() {
             setScheduleName(stored.scheduleName || "Yleisaikataulu");
             setStatusDate(stored.statusDate || "2026-08-31");
             setTasks(stored.tasks);
+            setExtraDaysOff(Array.isArray(stored.extraDaysOff) ? stored.extraDaysOff : []);
             setSnapshots(Array.isArray(stored.snapshots) ? stored.snapshots : []);
             setSelectedIds(new Set([stored.tasks[0].id]));
             setSelectionAnchorId(stored.tasks[0].id);
@@ -189,8 +194,8 @@ export default function ScheduleApp() {
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const normalizedTasks = useMemo(() => normalizeSummaries(tasks), [tasks]);
-  const pulse = useMemo(() => getProjectPulse(normalizedTasks, statusDate), [normalizedTasks, statusDate]);
+  const normalizedTasks = useMemo(() => normalizeSummaries(tasks, extraDaysOff), [tasks, extraDaysOff]);
+  const pulse = useMemo(() => getProjectPulse(normalizedTasks, statusDate, extraDaysOff), [normalizedTasks, statusDate, extraDaysOff]);
   const criticalTaskIds = useMemo(
     () => getCriticalTaskIds(normalizedTasks),
     [normalizedTasks],
@@ -203,7 +208,7 @@ export default function ScheduleApp() {
       const filterMatch =
         taskFilter === "all" ||
         (taskFilter === "unfinished" && (task.progress ?? 0) < 100) ||
-        (taskFilter === "behind" && isBehind(task, statusDate));
+        (taskFilter === "behind" && isBehind(task, statusDate, extraDaysOff));
       return textMatch && filterMatch;
     };
     if (!search && taskFilter === "all") {
@@ -217,7 +222,7 @@ export default function ScheduleApp() {
       return getDescendantIndexes(normalizedTasks, index)
         .some((childIndex) => matchIds.has(normalizedTasks[childIndex].id));
     });
-  }, [normalizedTasks, taskQuery, taskFilter, statusDate]);
+  }, [normalizedTasks, taskQuery, taskFilter, statusDate, extraDaysOff]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -229,6 +234,7 @@ export default function ScheduleApp() {
       statusDate,
       tasks,
       snapshots,
+      extraDaysOff,
     };
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -244,7 +250,7 @@ export default function ScheduleApp() {
     } catch {
       // Selaintallennuksen rajoitus ei saa estää työskentelyä. JSON-vienti on varmuuskopio.
     }
-  }, [loaded, activeProjectId, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots]);
+  }, [loaded, activeProjectId, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -300,7 +306,7 @@ export default function ScheduleApp() {
     commit((current) => {
       const normalizedPatch =
         "start" in patch && patch.start
-          ? { ...patch, start: nextWorkday(patch.start) }
+          ? { ...patch, start: nextWorkday(patch.start, extraDaysOff) }
           : patch;
 
       const next = current.map((task) =>
@@ -315,7 +321,7 @@ export default function ScheduleApp() {
 
       if (!affectsSchedule) return next;
 
-      const result = scheduleDependencies(next);
+      const result = scheduleDependencies(next, extraDaysOff);
       if (result.errors.length) {
         flash(result.errors.join(" "));
         return next;
@@ -486,7 +492,7 @@ export default function ScheduleApp() {
   }
 
   function calculateDependencies() {
-    const result = scheduleDependencies(tasks);
+    const result = scheduleDependencies(tasks, extraDaysOff);
     if (result.errors.length) {
       flash(result.errors.join(" "));
       return;
@@ -519,7 +525,7 @@ export default function ScheduleApp() {
     const normal = normalizedTasks.filter((task) => task.type !== "summary");
     if (!normal.length) return;
     const start = minIsoDate(normal.map((task) => task.start));
-    const end = maxIsoDate(normal.map((task) => workdayEnd(task.start, task.duration)));
+    const end = maxIsoDate(normal.map((task) => workdayEnd(task.start, task.duration, extraDaysOff)));
     setRangeStart(addDays(start, -7));
     setRangeEnd(addDays(end, 14));
   }
@@ -563,6 +569,7 @@ export default function ScheduleApp() {
       statusDate,
       tasks,
       snapshots,
+      extraDaysOff,
     };
     download(
       `${projectNumber}-${scheduleName.replaceAll(" ", "_")}.jana.json`,
@@ -583,6 +590,7 @@ export default function ScheduleApp() {
       setScheduleName(parsed.scheduleName ?? scheduleName);
       setStatusDate(parsed.statusDate ?? statusDate);
       setSnapshots(Array.isArray(parsed.snapshots) ? parsed.snapshots : []);
+      setExtraDaysOff(Array.isArray(parsed.extraDaysOff) ? parsed.extraDaysOff : []);
       setTasks(parsed.tasks);
       setSelectedIds(new Set([parsed.tasks[0].id]));
       setSelectionAnchorId(parsed.tasks[0].id);
@@ -612,7 +620,7 @@ export default function ScheduleApp() {
       task.name,
       task.duration,
       task.start,
-      workdayEnd(task.start, task.duration),
+      workdayEnd(task.start, task.duration, extraDaysOff),
       task.area ?? "",
       task.owner ?? "",
       task.predecessorId ?? "",
@@ -659,7 +667,7 @@ export default function ScheduleApp() {
   }
 
   function currentPayload(): StoredProject {
-    return { version: 1, projectNumber, projectName, scheduleName, statusDate, tasks: cloneTasks(tasks), snapshots };
+    return { version: 1, projectNumber, projectName, scheduleName, statusDate, tasks: cloneTasks(tasks), snapshots, extraDaysOff };
   }
 
   function saveCurrentDirectly() {
@@ -688,6 +696,7 @@ export default function ScheduleApp() {
     setStatusDate(project.statusDate || new Date().toISOString().slice(0, 10));
     setTasks(cloneTasks(project.tasks));
     setSnapshots(Array.isArray(project.snapshots) ? project.snapshots : []);
+    setExtraDaysOff(Array.isArray(project.extraDaysOff) ? project.extraDaysOff : []);
     setUndoStack([]);
     setRedoStack([]);
     setSelectedIds(new Set([project.tasks[0].id]));
@@ -727,6 +736,7 @@ export default function ScheduleApp() {
       statusDate: start,
       tasks: [{ id: Date.now(), name: "Työvaihe", start: nextWorkday(start), duration: 5, level: 0, type: "task", progress: 0 }],
       snapshots: [],
+      extraDaysOff: [],
     };
     const entries: ProjectListing[] = [
       ...catalog,
@@ -796,7 +806,7 @@ export default function ScheduleApp() {
         exportJson();
         return;
       }
-      if (editing || projectsOpen || historyOpen || viewPanelOpen) return;
+      if (editing || projectsOpen || historyOpen || viewPanelOpen || calendarOpen) return;
       if (control && key === "z") { event.preventDefault(); undo(); }
       else if (control && (key === "y" || (key === "z" && event.shiftKey))) { event.preventDefault(); redo(); }
       else if (control && key === "d") { event.preventDefault(); copyTasks(); }
@@ -809,7 +819,7 @@ export default function ScheduleApp() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [tasks, snapshots, selectedIds, undoStack, redoStack, projectsOpen, historyOpen, viewPanelOpen]);
+  }, [tasks, snapshots, selectedIds, undoStack, redoStack, projectsOpen, historyOpen, viewPanelOpen, calendarOpen]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
   function navigate(key: string) {
@@ -819,8 +829,7 @@ export default function ScheduleApp() {
       setShowTrackingColumns(true);
       flash("Toteumaseuranta avattu samaan aikataulunäkymään.");
     } else if (key === "calendar") {
-      setViewPanelOpen(true);
-      flash("Kalenteri käyttää Suomen arkipyhiä ja työpäiviä.");
+      setCalendarOpen(true);
     } else if (key === "versions") {
       setHistoryOpen(true);
     } else if (key === "week") {
@@ -926,6 +935,7 @@ export default function ScheduleApp() {
             showPlanningColumns={showPlanningColumns}
             showTrackingColumns={showTrackingColumns}
             statusDate={statusDate}
+            extraDaysOff={extraDaysOff}
             taskNameWidth={taskNameWidth}
             onTaskNameWidthChange={setTaskNameWidth}
             onSelect={selectTask}
@@ -953,6 +963,7 @@ export default function ScheduleApp() {
             statusDate={statusDate}
             showBaseline={showBaseline}
             showTrackingLine={showTrackingColumns}
+            extraDaysOff={extraDaysOff}
             onUpdate={updateTask}
           />
         </section>
@@ -993,6 +1004,29 @@ export default function ScheduleApp() {
           onClose={() => setHistoryOpen(false)}
           onSave={saveSnapshot}
           onRestore={restoreSnapshot}
+        />
+
+        <CalendarPanel
+          extraDaysOff={extraDaysOff}
+          onAdd={(day) => {
+            if (extraDaysOff.includes(day)) return;
+            const nextDaysOff = [...extraDaysOff, day].sort();
+            setExtraDaysOff(nextDaysOff);
+            commit((current) => {
+              const adjusted = current.map((task) =>
+                task.type === "summary" ? task : { ...task, start: nextWorkday(task.start, nextDaysOff) },
+              );
+              return scheduleDependencies(adjusted, nextDaysOff).tasks;
+            });
+            flash("Työmaan vapaapäivä lisätty kalenteriin.");
+          }}
+          onRemove={(day) => {
+            const nextDaysOff = extraDaysOff.filter((item) => item !== day);
+            setExtraDaysOff(nextDaysOff);
+            commit((current) => scheduleDependencies(current, nextDaysOff).tasks);
+            flash("Vapaapäivä poistettu kalenterista.");
+          }}
+          onClose={() => setCalendarOpen(false)}
         />
 
         <footer className="statusbar">
