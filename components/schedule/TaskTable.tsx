@@ -10,6 +10,7 @@ type TaskTableProps = {
   showPlanningColumns: boolean;
   showTrackingColumns: boolean;
   statusDate: string;
+  extraDaysOff: string[];
   taskNameWidth: number;
   onTaskNameWidthChange: (width: number) => void;
   onSelect: (id: number, options: { additive: boolean; range: boolean }) => void;
@@ -30,6 +31,7 @@ export function TaskTable({
   showPlanningColumns,
   showTrackingColumns,
   statusDate,
+  extraDaysOff,
   taskNameWidth,
   onTaskNameWidthChange,
   onSelect,
@@ -100,7 +102,7 @@ export function TaskTable({
         <tbody>
           {visibleTasks.map((task) => {
             const originalIndex = tasks.findIndex((item) => item.id === task.id);
-            const end = workdayEnd(task.start, task.duration);
+            const end = workdayEnd(task.start, task.duration, extraDaysOff);
             const complete = (task.progress ?? 0) >= 100;
 
             return (
