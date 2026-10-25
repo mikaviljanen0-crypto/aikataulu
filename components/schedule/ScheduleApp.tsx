@@ -385,18 +385,25 @@ export default function ScheduleApp() {
   }
 
   function copyTasks() {
-    const indexes = tasks
-      .map((task, index) => (selectedIds.has(task.id) ? index : -1))
-      .filter((index) => index >= 0);
+    const indexesToCopy = new Set<number>();
+    tasks.forEach((task, index) => {
+      if (!selectedIds.has(task.id)) return;
+      indexesToCopy.add(index);
+      getDescendantIndexes(tasks, index).forEach((child) => indexesToCopy.add(child));
+    });
+    const indexes = [...indexesToCopy].sort((a, b) => a - b);
     if (!indexes.length) return;
 
-    const insertAt = Math.max(...indexes) + 1;
-    const stamp = Date.now();
-    const copies = indexes.map((index, offset) => ({
+    const insertAt = indexes.at(-1)! + 1;
+    const firstId = Math.max(Date.now(), ...tasks.map((task) => task.id + 1));
+    const idMap = new Map(indexes.map((index, offset) => [tasks[index].id, firstId + offset]));
+    const copies = indexes.map((index) => ({
       ...tasks[index],
-      id: stamp + offset,
+      id: idMap.get(tasks[index].id)!,
       name: `${tasks[index].name} – kopio`,
-      predecessorId: undefined,
+      predecessorId: tasks[index].predecessorId
+        ? idMap.get(tasks[index].predecessorId!) ?? tasks[index].predecessorId
+        : undefined,
       baselineStart: undefined,
       baselineDuration: undefined,
     }));
@@ -450,17 +457,37 @@ export default function ScheduleApp() {
 
   function moveSelected(direction: -1 | 1) {
     const index = primaryIndex();
-    if (index < 0) return;
-    const blockIndexes = [index, ...getDescendantIndexes(tasks, index)];
-    const block = blockIndexes.map((i) => tasks[i]);
-    const blockSet = new Set(blockIndexes);
-    const remaining = tasks.filter((_, i) => !blockSet.has(i));
-    const insertIndex =
-      direction > 0
-        ? Math.min(remaining.length, index + 1)
-        : Math.max(0, index - 1);
-    remaining.splice(insertIndex, 0, ...block);
-    commit(remaining);
+    const root = tasks[index];
+    if (!root) return;
+    const rootIndexes = getDescendantIndexes(tasks, index);
+    const end = rootIndexes.at(-1) ?? index;
+    const selectedBlock = tasks.slice(index, end + 1);
+
+    if (direction < 0) {
+      let previous = index - 1;
+      while (previous >= 0 && tasks[previous].level > root.level) previous -= 1;
+      if (previous < 0 || tasks[previous].level !== root.level) return;
+      const next = [
+        ...tasks.slice(0, previous),
+        ...selectedBlock,
+        ...tasks.slice(previous, index),
+        ...tasks.slice(end + 1),
+      ];
+      commit(next);
+      return;
+    }
+
+    const nextStart = end + 1;
+    if (nextStart >= tasks.length || tasks[nextStart].level !== root.level) return;
+    const nextChildren = getDescendantIndexes(tasks, nextStart);
+    const nextEnd = nextChildren.at(-1) ?? nextStart;
+    const next = [
+      ...tasks.slice(0, index),
+      ...tasks.slice(nextStart, nextEnd + 1),
+      ...selectedBlock,
+      ...tasks.slice(nextEnd + 1),
+    ];
+    commit(next);
   }
 
   function toggleCollapse(id: number) {
@@ -687,6 +714,15 @@ export default function ScheduleApp() {
     setScheduleName(project.scheduleName || "Yleisaikataulu");
     setStatusDate(project.statusDate || new Date().toISOString().slice(0, 10));
     setTasks(cloneTasks(project.tasks));
+    const scheduled = project.tasks.filter((task) => task.type !== "summary");
+    const times = scheduled.length ? scheduled : project.tasks;
+    if (times.length) {
+      const starts = times.map((task) => task.start).sort();
+      const ends = times.map((task) => workdayEnd(task.start, task.duration)).sort();
+      setRangeStart(addDays(starts[0], -7));
+      setRangeEnd(addDays(ends.at(-1)!, 14));
+      setFitToWindow(true);
+    }
     setSnapshots(Array.isArray(project.snapshots) ? project.snapshots : []);
     setUndoStack([]);
     setRedoStack([]);
