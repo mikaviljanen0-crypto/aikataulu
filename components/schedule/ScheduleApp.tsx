@@ -807,8 +807,9 @@ export default function ScheduleApp() {
         return;
       }
       if (editing || projectsOpen || historyOpen || viewPanelOpen || calendarOpen) return;
-      if (control && key === "z") { event.preventDefault(); undo(); }
-      else if (control && (key === "y" || (key === "z" && event.shiftKey))) { event.preventDefault(); redo(); }
+      if (control && key === "z" && event.shiftKey) { event.preventDefault(); redo(); }
+      else if (control && key === "z") { event.preventDefault(); undo(); }
+      else if (control && key === "y") { event.preventDefault(); redo(); }
       else if (control && key === "d") { event.preventDefault(); copyTasks(); }
       else if (!control && (key === "delete" || key === "backspace")) {
         if (window.confirm(`Poistetaanko ${selectedIds.size} valittua työvaihetta?`)) removeTasks();
@@ -919,6 +920,7 @@ export default function ScheduleApp() {
           statusDate={statusDate}
           showBaseline={showBaseline}
           showTracking={showTrackingColumns}
+          extraDaysOff={extraDaysOff}
         />
 
         <section
