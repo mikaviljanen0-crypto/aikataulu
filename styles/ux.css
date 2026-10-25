@@ -100,3 +100,120 @@
   .quickbar-actions { gap: 3px; }
   .quickbar { gap: 6px; }
 }
+
+
+/* Työmaakohtainen työpäiväkalenteri */
+.snedo-dialog-layer {
+  position: fixed;
+  z-index: 115;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.snedo-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 33, 52, .34);
+  border: none;
+  border-radius: 0;
+  z-index: 0;
+}
+.snedo-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(540px, 96vw);
+  height: 100vh;
+  overflow-y: auto;
+  background: #fff;
+  box-shadow: -12px 0 34px rgba(18, 39, 60, .17);
+}
+.snedo-dialog-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 25px 23px 19px;
+  border-bottom: 1px solid #dce5ed;
+  background: #f7fafc;
+}
+.snedo-dialog-head .eyebrow {
+  color: #155da8;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+.snedo-dialog-head h2 {
+  color: #1b2f46;
+  margin: 5px 0 7px;
+  font-size: 23px;
+  font-weight: 660;
+}
+.snedo-dialog-head p {
+  font-size: 11px;
+  color: #66798a;
+  line-height: 1.45;
+  margin: 0;
+}
+.snedo-close {
+  min-width: 31px;
+  height: 31px;
+  background: #e6edf4;
+  border: none;
+  border-radius: 7px;
+  color: #34495f;
+  font-size: 19px;
+}
+.snedo-dialog-body { padding: 22px 24px 32px; }
+.snedo-primary-button {
+  background: #155da8 !important;
+  color: #fff !important;
+  border-color: #155da8 !important;
+  font-weight: 650;
+}
+.calendar-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 9px;
+  align-items: end;
+  padding: 15px;
+  border: 1px solid #d7e3ed;
+  background: #f7fbff;
+  border-radius: 7px;
+}
+.calendar-add label {
+  display: grid;
+  gap: 6px;
+  color: #576f85;
+  font-size: 11px;
+  font-weight: 650;
+}
+.calendar-add input { height: 32px; background: white; border: 1px solid #cbd7e2; border-radius: 4px; padding: 4px 7px; }
+.calendar-heading {
+  display: block;
+  margin: 21px 0 11px;
+  color: #244864;
+  font-size: 13px;
+}
+.calendar-days { display: grid; gap: 6px; }
+.calendar-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 39px;
+  padding: 7px 11px;
+  border: 1px solid #e1e8ef;
+  border-radius: 4px;
+  color: #33465a;
+  font-size: 11px;
+}
+.calendar-date-row button { font-size: 10px; color: #985239; }
+.muted-paragraph { color: #7b8b9b; font-size: 11px; line-height: 1.55; }
+.calendar-tip {
+  margin-top: 23px;
+  padding: 11px;
+  border-left: 3px solid #b6cddd;
+  background: #f5f8fb;
+  color: #61778d;
+  line-height: 1.5;
+  font-size: 10px;
+}
