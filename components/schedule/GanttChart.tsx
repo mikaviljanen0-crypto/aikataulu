@@ -27,6 +27,9 @@ type Props = {
   tasks: Task[];
   visibleTasks: Task[];
   criticalTaskIds: Set<number>;
+  selectedIds: Set<number>;
+  behindIds: Set<number>;
+  onSelect: (id: number) => void;
   rangeStart: string;
   rangeEnd: string;
   zoom: TimelineZoom;
@@ -54,6 +57,9 @@ export function GanttChart({
   tasks,
   visibleTasks,
   criticalTaskIds,
+  selectedIds,
+  behindIds,
+  onSelect,
   rangeStart,
   rangeEnd,
   zoom,
@@ -184,6 +190,7 @@ export function GanttChart({
     task: Task,
     mode: DragMode,
   ) {
+    onSelect(task.id);
     if (task.type === "summary") return;
     event.preventDefault();
     event.stopPropagation();
@@ -358,7 +365,7 @@ export function GanttChart({
 
           return (
             <div
-              className={`gantt-row level-${task.level}`}
+              className={`gantt-row level-${task.level} ${selectedIds.has(task.id) ? "selected-gantt-row" : ""} ${behindIds.has(task.id) ? "behind-gantt-row" : ""}`}
               style={{ width: chartWidth }}
               key={task.id}
             >
@@ -378,6 +385,7 @@ export function GanttChart({
                   `level-${task.level}`,
                   task.type === "summary" ? "summary-bar" : "",
                   criticalTaskIds.has(task.id) ? "critical-bar" : "",
+                  selectedIds.has(task.id) ? "selected-gantt-bar" : "",
                 ].join(" ")}
                 style={{ left, width }}
                 onPointerDown={(event) => beginDrag(event, task, "move")}
