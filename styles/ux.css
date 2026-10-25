@@ -217,3 +217,69 @@
   line-height: 1.5;
   font-size: 10px;
 }
+
+
+/* Työmaakokouksen tiivis tilannekuva */
+.meeting-pulse-grid {
+  margin: 18px 22px 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.meeting-pulse-grid > div {
+  min-height: 77px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 10px 9px;
+  background: #f7fafd;
+  border: 1px solid #dce6ee;
+  border-radius: 7px;
+}
+.meeting-pulse-grid small {
+  font-size: 9.1px;
+  color: #6e8091;
+  line-height: 1.32;
+}
+.meeting-pulse-grid strong {
+  font-size: 21px;
+  color: #215578;
+  font-weight: 680;
+  line-height: 1;
+}
+.meeting-pulse-grid > div:nth-child(3) strong { color: #b46b34; }
+.meeting-late-block {
+  margin: 0 22px 16px;
+  padding: 13px 15px;
+  border: 1px solid #e1e7ed;
+  border-radius: 6px;
+}
+.meeting-late-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+}
+.meeting-late-head div { display: grid; gap: 4px; }
+.meeting-late-head strong { font-size: 12px; color: #26415a; }
+.meeting-late-head small { font-size: 9px; line-height: 1.3; color: #8997a4; }
+.meeting-late-head button { min-height: 27px; white-space: nowrap; font-size: 10px; }
+.meeting-late-row {
+  display: grid;
+  grid-template-columns: 33px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 0;
+  border-top: 1px solid #edf1f5;
+}
+.meeting-late-row span { color: #aa6530; font-size: 10px; font-weight: 700; }
+.meeting-late-row strong { color: #33495d; font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meeting-late-row small { color: #7b8c9c; font-size: 9px; white-space: nowrap; }
+.meeting-empty { color: #8595a6; font-size: 10px; margin: 0; line-height: 1.45; }
+@media (max-width: 480px) {
+  .meeting-pulse-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .meeting-late-row { grid-template-columns: 24px 1fr; }
+  .meeting-late-row small { grid-column: 2; }
+}
