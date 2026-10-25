@@ -10,6 +10,7 @@ import {
   workdaysInclusive,
 } from "@/lib/calendar";
 import { getWbs } from "@/lib/wbs";
+import { isBehind } from "@/lib/progress";
 import type { Task } from "@/types/schedule";
 import { useEffect, useRef, useState } from "react";
 import type { TimelineZoom } from "./TimelineControls";
@@ -27,6 +28,8 @@ type Props = {
   tasks: Task[];
   visibleTasks: Task[];
   criticalTaskIds: Set<number>;
+  selectedIds: Set<number>;
+  onSelect: (id: number) => void;
   rangeStart: string;
   rangeEnd: string;
   zoom: TimelineZoom;
@@ -53,6 +56,8 @@ export function GanttChart({
   tasks,
   visibleTasks,
   criticalTaskIds,
+  selectedIds,
+  onSelect,
   rangeStart,
   rangeEnd,
   zoom,
@@ -182,6 +187,7 @@ export function GanttChart({
     task: Task,
     mode: DragMode,
   ) {
+    onSelect(task.id);
     if (task.type === "summary") return;
     event.preventDefault();
     event.stopPropagation();
@@ -356,7 +362,12 @@ export function GanttChart({
 
           return (
             <div
-              className={`gantt-row level-${task.level}`}
+              className={[
+                "gantt-row",
+                `level-${task.level}`,
+                selectedIds.has(task.id) ? "selected-gantt-row" : "",
+                isBehind(task, statusDate) ? "behind-gantt-row" : "",
+              ].join(" ")}
               style={{ width: chartWidth }}
               key={task.id}
             >
@@ -376,6 +387,7 @@ export function GanttChart({
                   `level-${task.level}`,
                   task.type === "summary" ? "summary-bar" : "",
                   criticalTaskIds.has(task.id) ? "critical-bar" : "",
+                  selectedIds.has(task.id) ? "selected-gantt-bar" : "",
                 ].join(" ")}
                 style={{ left, width }}
                 onPointerDown={(event) => beginDrag(event, task, "move")}
