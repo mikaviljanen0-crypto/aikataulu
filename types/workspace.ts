@@ -17,6 +17,7 @@ export type StoredProject = {
   statusDate: string;
   tasks: Task[];
   snapshots?: TrackingSnapshot[];
+  extraDaysOff?: string[];
 };
 
 export type ProjectListing = {
