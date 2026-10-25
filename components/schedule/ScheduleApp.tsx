@@ -19,7 +19,6 @@ import { ProjectBar } from "./ProjectBar";
 import { TaskTable } from "./TaskTable";
 import { TopBar } from "./TopBar";
 import { Sidebar } from "./Sidebar";
-import { PrintHeader } from "./PrintHeader";
 import { PrintReport } from "./PrintReport";
 import { QuickBar, type TaskFilter } from "./QuickBar";
 import { ProjectsPanel } from "./ProjectsPanel";
@@ -881,12 +880,17 @@ export default function ScheduleApp() {
           onShiftStatusDate={(days) => setStatusDate(addDays(statusDate, days))}
         />
 
-        <PrintHeader
-          projectNumber={projectNumber}
-          projectName={projectName}
-          scheduleName={scheduleName}
+        <QuickBar
+          search={taskQuery}
+          filter={taskFilter}
+          pulse={pulse}
           statusDate={statusDate}
-          updatedDate={new Date().toISOString().slice(0, 10)}
+          onSearch={setTaskQuery}
+          onFilter={setTaskFilter}
+          onFit={fitProjectToView}
+          onProjects={openProjects}
+          onHistory={() => setHistoryOpen(true)}
+          onPrint={() => window.print()}
         />
 
         <section
@@ -934,6 +938,35 @@ export default function ScheduleApp() {
           />
         </section>
 
+        <PrintReport
+          tasks={visibleTasks}
+          fullTasks={normalizedTasks}
+          projectNumber={projectNumber}
+          projectName={projectName}
+          scheduleName={scheduleName}
+          statusDate={statusDate}
+          showBaseline={showBaseline}
+          showTracking={showTrackingColumns}
+        />
+
+        <ProjectsPanel
+          open={projectsOpen}
+          catalog={catalog}
+          activeId={activeProjectId}
+          onClose={() => setProjectsOpen(false)}
+          onOpen={openProject}
+          onCreate={createProject}
+          onDuplicate={duplicateProject}
+        />
+
+        <HistoryPanel
+          open={historyOpen}
+          snapshots={snapshots}
+          onClose={() => setHistoryOpen(false)}
+          onSave={saveSnapshot}
+          onRestore={restoreSnapshot}
+        />
+
         <ViewPanel
           open={viewPanelOpen}
           rangeStart={rangeStart}
@@ -957,7 +990,7 @@ export default function ScheduleApp() {
 
         <footer className="statusbar">
           <span>{projectNumber} · {projectName}</span>
-          <span>{selectedIds.size} valittu · {visibleTasks.length}/{normalizedTasks.length} riviä · Snedo Aikataulu 1.0</span>
+          <span>{selectedIds.size} valittu · {visibleTasks.length}/{normalizedTasks.length} riviä · Snedo Aikataulu 1.1</span>
         </footer>
 
         <input
