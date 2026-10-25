@@ -100,3 +100,25 @@
   .quickbar-actions { gap: 3px; }
   .quickbar { gap: 6px; }
 }
+
+.more-menu-divider { margin: 3px 0; height: 1px; background: #e0e7ef; }
+.more-menu-popover { width: 175px; }
+.context-menu-backdrop {
+  position: fixed; inset: 0; z-index: 90;
+  border: 0; background: transparent; border-radius: 0;
+}
+.task-context-menu {
+  position: fixed; z-index: 91; width: 190px;
+  background: #fff; border: 1px solid #d5e0ea; border-radius: 7px;
+  box-shadow: 0 10px 30px rgb(25 52 75 / 19%);
+  display: grid; gap: 2px; padding: 5px;
+}
+.task-context-menu > strong {
+  color: #6b7d8e; font-size: 9px; font-weight: 750;
+  padding: 7px 8px 5px; text-transform: uppercase;
+}
+.task-context-menu button {
+  text-align: left; background: transparent; border: 0; min-height: 27px;
+  border-radius: 4px; padding: 5px 9px; font-size: 10px;
+}
+.task-context-menu button:hover { background: #edf4fb; }
