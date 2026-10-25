@@ -836,7 +836,6 @@ export default function ScheduleApp() {
       openProjects();
     }
   }
-  }
 
   return (
     <main className="snedo-shell">
