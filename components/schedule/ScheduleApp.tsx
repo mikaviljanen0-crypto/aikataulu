@@ -562,6 +562,7 @@ export default function ScheduleApp() {
       scheduleName,
       statusDate,
       tasks,
+      snapshots,
     };
     download(
       `${projectNumber}-${scheduleName.replaceAll(" ", "_")}.jana.json`,
@@ -574,12 +575,14 @@ export default function ScheduleApp() {
     try {
       const parsed = JSON.parse(await file.text()) as StoredProject;
       if (!Array.isArray(parsed.tasks) || !parsed.tasks.length) throw new Error();
+      if (!window.confirm("Korvataanko avoinna oleva aikataulu JSON-tiedoston tiedoilla?")) return;
       setUndoStack((stack) => [...stack, cloneTasks(tasks)]);
       setRedoStack([]);
       setProjectNumber(parsed.projectNumber ?? projectNumber);
       setProjectName(parsed.projectName ?? projectName);
       setScheduleName(parsed.scheduleName ?? scheduleName);
       setStatusDate(parsed.statusDate ?? statusDate);
+      setSnapshots(Array.isArray(parsed.snapshots) ? parsed.snapshots : []);
       setTasks(parsed.tasks);
       setSelectedIds(new Set([parsed.tasks[0].id]));
       setSelectionAnchorId(parsed.tasks[0].id);
@@ -655,6 +658,160 @@ export default function ScheduleApp() {
     }
   }
 
+  function currentPayload(): StoredProject {
+    return { version: 1, projectNumber, projectName, scheduleName, statusDate, tasks: cloneTasks(tasks), snapshots };
+  }
+
+  function saveCurrentDirectly() {
+    window.localStorage.setItem(PROJECT_DATA_PREFIX + activeProjectId, JSON.stringify(currentPayload()));
+  }
+
+  function refreshCatalog() {
+    try {
+      const entries = JSON.parse(window.localStorage.getItem(PROJECT_INDEX_KEY) || "[]") as ProjectListing[];
+      if (Array.isArray(entries)) setCatalog(entries);
+    } catch {
+      flash("Projektihakemistoa ei voitu avata.");
+    }
+  }
+
+  function openProjects() {
+    refreshCatalog();
+    setProjectsOpen(true);
+  }
+
+  function applyProject(project: StoredProject, id: string) {
+    setActiveProjectId(id);
+    setProjectNumber(project.projectNumber || "");
+    setProjectName(project.projectName || "");
+    setScheduleName(project.scheduleName || "Yleisaikataulu");
+    setStatusDate(project.statusDate || new Date().toISOString().slice(0, 10));
+    setTasks(cloneTasks(project.tasks));
+    setSnapshots(Array.isArray(project.snapshots) ? project.snapshots : []);
+    setUndoStack([]);
+    setRedoStack([]);
+    setSelectedIds(new Set([project.tasks[0].id]));
+    setSelectionAnchorId(project.tasks[0].id);
+    setTaskQuery("");
+    setTaskFilter("all");
+    setProjectsOpen(false);
+    setHistoryOpen(false);
+    setActiveNav("general");
+  }
+
+  function openProject(id: string) {
+    const raw = window.localStorage.getItem(PROJECT_DATA_PREFIX + id);
+    if (!raw) {
+      flash("Projektin tietoja ei löytynyt tästä selaimesta.");
+      return;
+    }
+    try {
+      const project = JSON.parse(raw) as StoredProject;
+      if (!Array.isArray(project.tasks) || !project.tasks.length) throw new Error();
+      saveCurrentDirectly();
+      applyProject(project, id);
+    } catch {
+      flash("Projektin avaaminen epäonnistui. Nykyinen projekti säilyy.");
+    }
+  }
+
+  function createProject(number: string, name: string) {
+    saveCurrentDirectly();
+    const id = `work-${Date.now()}`;
+    const start = new Date().toISOString().slice(0, 10);
+    const project: StoredProject = {
+      version: 1,
+      projectNumber: number,
+      projectName: name,
+      scheduleName: "Yleisaikataulu",
+      statusDate: start,
+      tasks: [{ id: Date.now(), name: "Työvaihe", start: nextWorkday(start), duration: 5, level: 0, type: "task", progress: 0 }],
+      snapshots: [],
+    };
+    const entries: ProjectListing[] = [
+      ...catalog,
+      { id, projectNumber: number, projectName: name, scheduleName: project.scheduleName, updatedAt: new Date().toISOString() },
+    ];
+    window.localStorage.setItem(PROJECT_DATA_PREFIX + id, JSON.stringify(project));
+    window.localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify(entries));
+    setCatalog(entries);
+    applyProject(project, id);
+    flash(`Projekti "${name}" luotu tähän selaimeen.`);
+  }
+
+  function duplicateProject(id: string) {
+    try {
+      const original = id === activeProjectId ? currentPayload() : JSON.parse(window.localStorage.getItem(PROJECT_DATA_PREFIX + id) || "null") as StoredProject;
+      if (!original || !Array.isArray(original.tasks)) throw new Error();
+      saveCurrentDirectly();
+      const copyId = `work-${Date.now()}`;
+      const copy: StoredProject = { ...original, projectName: original.projectName + " (kopio)", tasks: cloneTasks(original.tasks), snapshots: [] };
+      const entries: ProjectListing[] = [
+        ...catalog,
+        { id: copyId, projectNumber: copy.projectNumber, projectName: copy.projectName, scheduleName: copy.scheduleName, updatedAt: new Date().toISOString() },
+      ];
+      window.localStorage.setItem(PROJECT_DATA_PREFIX + copyId, JSON.stringify(copy));
+      window.localStorage.setItem(PROJECT_INDEX_KEY, JSON.stringify(entries));
+      setCatalog(entries);
+      applyProject(copy, copyId);
+      flash("Aikataulusta luotiin erillinen kopio.");
+    } catch {
+      flash("Projektin kopiointi epäonnistui.");
+    }
+  }
+
+  function saveSnapshot(note: string) {
+    const snapshot: TrackingSnapshot = {
+      id: `snapshot-${Date.now()}`,
+      statusDate,
+      createdAt: new Date().toISOString(),
+      note,
+      completion: pulse.totalProgress,
+      tasks: cloneTasks(tasks),
+    };
+    setSnapshots((current) => [...current, snapshot]);
+    flash("Työmaakokouksen tilannekuva tallennettu selaimeen.");
+  }
+
+  function restoreSnapshot(id: string) {
+    const snapshot = snapshots.find((item) => item.id === id);
+    if (!snapshot) return;
+    if (!window.confirm("Palautetaanko tämän tilannekuvan aikataulu? Nykyiset työvaiheet korvataan. JSON-varmuuskopiota suositellaan.")) return;
+    commit(cloneTasks(snapshot.tasks));
+    setStatusDate(snapshot.statusDate);
+    setHistoryOpen(false);
+    flash("Tilannekuva palautettu.");
+  }
+
+  /* Näppäimistöoikotiet eivät korvaa tekstikentän normaalia editointia. */
+  /* eslint-disable react-hooks/exhaustive-deps */
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      const control = event.ctrlKey || event.metaKey;
+      const target = event.target as HTMLElement | null;
+      const editing = Boolean(target?.closest("input, textarea, select, [contenteditable=true]"));
+      if (control && key === "s") {
+        event.preventDefault();
+        exportJson();
+        return;
+      }
+      if (editing || projectsOpen || historyOpen || viewPanelOpen) return;
+      if (control && key === "z") { event.preventDefault(); undo(); }
+      else if (control && (key === "y" || (key === "z" && event.shiftKey))) { event.preventDefault(); redo(); }
+      else if (control && key === "d") { event.preventDefault(); copyTasks(); }
+      else if (!control && (key === "delete" || key === "backspace")) {
+        if (window.confirm(`Poistetaanko ${selectedIds.size} valittua työvaihetta?`)) removeTasks();
+      } else if (!control && key === "/") {
+        event.preventDefault();
+        document.querySelector<HTMLInputElement>(".quickbar-search input")?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [tasks, snapshots, selectedIds, undoStack, redoStack, projectsOpen, historyOpen, viewPanelOpen]);
+  /* eslint-enable react-hooks/exhaustive-deps */
+
   function navigate(key: string) {
     setActiveNav(key);
     if (key === "general") return;
@@ -665,7 +822,7 @@ export default function ScheduleApp() {
       setViewPanelOpen(true);
       flash("Kalenteri käyttää Suomen arkipyhiä ja työpäiviä.");
     } else if (key === "versions") {
-      flash("Tavoite toimii ensimmäisenä lukittuna aikatauluversiona.");
+      setHistoryOpen(true);
     } else if (key === "week") {
       setRangeStart(addDays(statusDate, -7));
       setRangeEnd(addDays(statusDate, 21));
@@ -674,9 +831,10 @@ export default function ScheduleApp() {
       flash("Viikkoaikataulun 4 viikon työskentelyalue.");
     } else if (key === "import") {
       jsonInputRef.current?.click();
-    } else {
-      flash("Näkymä käyttää samaa projektidataa; erillinen sivu viimeistellään seuraavassa vaiheessa.");
+    } else if (key === "projects") {
+      openProjects();
     }
+  }
   }
 
   return (
