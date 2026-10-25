@@ -835,7 +835,6 @@ export default function ScheduleApp() {
       openProjects();
     }
   }
-  }
 
   return (
     <main className="snedo-shell">
@@ -881,12 +880,36 @@ export default function ScheduleApp() {
           onShiftStatusDate={(days) => setStatusDate(addDays(statusDate, days))}
         />
 
+        <QuickBar
+          search={taskQuery}
+          filter={taskFilter}
+          pulse={pulse}
+          statusDate={statusDate}
+          onSearch={setTaskQuery}
+          onFilter={setTaskFilter}
+          onFit={fitProjectToView}
+          onProjects={openProjects}
+          onHistory={() => setHistoryOpen(true)}
+          onPrint={() => window.print()}
+        />
+
         <PrintHeader
           projectNumber={projectNumber}
           projectName={projectName}
           scheduleName={scheduleName}
           statusDate={statusDate}
           updatedDate={new Date().toISOString().slice(0, 10)}
+        />
+
+        <PrintReport
+          tasks={visibleTasks}
+          fullTasks={normalizedTasks}
+          projectNumber={projectNumber}
+          projectName={projectName}
+          scheduleName={scheduleName}
+          statusDate={statusDate}
+          showBaseline={showBaseline}
+          showTracking={showTrackingColumns}
         />
 
         <section
@@ -953,6 +976,23 @@ export default function ScheduleApp() {
           onShowWeekendsChange={setShowWeekends}
           onShowTodayChange={setShowToday}
           onShowBaselineChange={setShowBaseline}
+        />
+
+        <ProjectsPanel
+          open={projectsOpen}
+          catalog={catalog}
+          activeId={activeProjectId}
+          onClose={() => setProjectsOpen(false)}
+          onOpen={openProject}
+          onCreate={createProject}
+          onDuplicate={duplicateProject}
+        />
+        <HistoryPanel
+          open={historyOpen}
+          snapshots={snapshots}
+          onClose={() => setHistoryOpen(false)}
+          onSave={saveSnapshot}
+          onRestore={restoreSnapshot}
         />
 
         <footer className="statusbar">
