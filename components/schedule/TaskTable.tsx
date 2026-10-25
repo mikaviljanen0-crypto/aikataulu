@@ -7,6 +7,7 @@ type TaskTableProps = {
   visibleTasks: Task[];
   selectedIds: Set<number>;
   criticalTaskIds: Set<number>;
+  behindIds: Set<number>;
   showPlanningColumns: boolean;
   showTrackingColumns: boolean;
   statusDate: string;
@@ -28,6 +29,7 @@ export function TaskTable({
   visibleTasks,
   selectedIds,
   criticalTaskIds,
+  behindIds,
   showPlanningColumns,
   showTrackingColumns,
   statusDate,
@@ -112,6 +114,7 @@ export function TaskTable({
                   selectedIds.has(task.id) ? "selected" : "",
                   task.type === "summary" ? "summary-row" : "",
                   criticalTaskIds.has(task.id) ? "critical-row" : "",
+                  behindIds.has(task.id) ? "behind-row" : "",
                 ].join(" ")}
                 onClick={(event) =>
                   onSelect(task.id, {
