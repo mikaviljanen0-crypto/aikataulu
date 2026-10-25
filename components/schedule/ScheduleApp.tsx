@@ -200,30 +200,53 @@ export default function ScheduleApp() {
     () => getCriticalTaskIds(normalizedTasks),
     [normalizedTasks],
   );
+  const behindIds = useMemo(
+    () => new Set(normalizedTasks.filter((task) => isBehind(task, statusDate, extraDaysOff)).map((task) => task.id)),
+    [normalizedTasks, statusDate, extraDaysOff],
+  );
+
   const visibleTasks = useMemo(() => {
-    const search = taskQuery.trim().toLocaleLowerCase("fi-FI");
-    const matches = (task: Task) => {
-      const textMatch = !search || [task.name, task.area ?? "", task.owner ?? ""]
-        .some((value) => value.toLocaleLowerCase("fi-FI").includes(search));
-      const filterMatch =
-        taskFilter === "all" ||
-        (taskFilter === "unfinished" && (task.progress ?? 0) < 100) ||
-        (taskFilter === "behind" && isBehind(task, statusDate, extraDaysOff));
-      return textMatch && filterMatch;
-    };
-    if (!search && taskFilter === "all") {
+    const term = taskQuery.trim().toLocaleLowerCase("fi-FI");
+    if (!term && taskFilter === "all") {
       return normalizedTasks.filter((_, index) => !isHiddenByCollapsedParent(normalizedTasks, index));
     }
-    const matchIds = new Set(normalizedTasks.filter((task) => task.type !== "summary" && matches(task)).map((task) => task.id));
-    return normalizedTasks.filter((task, index) => {
-      if (isHiddenByCollapsedParent(normalizedTasks, index)) return false;
-      if (matchIds.has(task.id)) return true;
-      if (task.type !== "summary") return false;
-      return getDescendantIndexes(normalizedTasks, index)
-        .some((childIndex) => matchIds.has(normalizedTasks[childIndex].id));
-    });
-  }, [normalizedTasks, taskQuery, taskFilter, statusDate, extraDaysOff]);
 
+    const includesTerm = (task: Task) =>
+      [task.name, task.area ?? "", task.owner ?? ""]
+        .some((value) => value.toLocaleLowerCase("fi-FI").includes(term));
+
+    const matchesSearch = (task: Task, index: number) => {
+      if (!term || includesTerm(task)) return true;
+      let nearestLevel = task.level;
+      for (let i = index - 1; i >= 0 && nearestLevel > 0; i -= 1) {
+        const candidate = normalizedTasks[i];
+        if (candidate.level >= nearestLevel) continue;
+        if (includesTerm(candidate)) return true;
+        nearestLevel = candidate.level;
+      }
+      return false;
+    };
+
+    const shown = new Set<number>();
+    normalizedTasks.forEach((task, index) => {
+      if (task.type === "summary" || !matchesSearch(task, index)) return;
+      const matchesFilter = taskFilter === "all" ||
+        (taskFilter === "unfinished" && (task.progress ?? 0) < 100) ||
+        (taskFilter === "behind" && behindIds.has(task.id));
+      if (!matchesFilter) return;
+
+      shown.add(task.id);
+      let parentLevel = task.level;
+      for (let i = index - 1; i >= 0 && parentLevel > 0; i -= 1) {
+        if (normalizedTasks[i].level < parentLevel) {
+          shown.add(normalizedTasks[i].id);
+          parentLevel = normalizedTasks[i].level;
+        }
+      }
+    });
+    // Haussa näytetään osumat myös aiemmin suljettujen summarivien alta.
+    return normalizedTasks.filter((task) => shown.has(task.id));
+  }, [normalizedTasks, taskQuery, taskFilter, behindIds]);
   useEffect(() => {
     if (!loaded) return;
     const payload: StoredProject = {
@@ -934,6 +957,7 @@ export default function ScheduleApp() {
             visibleTasks={visibleTasks}
             selectedIds={selectedIds}
             criticalTaskIds={criticalTaskIds}
+            behindIds={behindIds}
             showPlanningColumns={showPlanningColumns}
             showTrackingColumns={showTrackingColumns}
             statusDate={statusDate}
@@ -956,6 +980,9 @@ export default function ScheduleApp() {
             tasks={normalizedTasks}
             visibleTasks={visibleTasks}
             criticalTaskIds={criticalTaskIds}
+            selectedIds={selectedIds}
+            behindIds={behindIds}
+            onSelect={(id) => selectTask(id, { additive: false, range: false })}
             rangeStart={rangeStart}
             rangeEnd={rangeEnd}
             zoom={timelineZoom}
