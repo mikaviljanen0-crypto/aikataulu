@@ -23,6 +23,8 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Calendar and regression tests
+        run: npm test
       - name: Production build
         # Report build errors even when lint fails, without hiding lint failures.
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
