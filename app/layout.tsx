@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "../styles/base.css";
+import "../styles/topbar.css";
+import "../styles/projectbar.css";
+import "../styles/schedule.css";
+import "../styles/gantt.css";
+import "../styles/ux.css";
+import "../styles/print.css";
+import "../styles/report.css";
 
 export const metadata: Metadata = {
   title: "Snedo Aikataulu",
