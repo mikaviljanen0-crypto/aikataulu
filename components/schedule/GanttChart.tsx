@@ -1,4 +1,5 @@
 import { syncScheduleVerticalScroll } from "@/lib/scrollSync";
+import type { HierarchyPalette } from "@/lib/hierarchyColors";
 import {
   addDays,
   dateOffsetFrom,
@@ -40,6 +41,7 @@ type Props = {
   statusDate: string;
   showBaseline: boolean;
   showHierarchyColors: boolean;
+  hierarchyPalette: HierarchyPalette;
   showTrackingLine: boolean;
   extraDaysOff: string[];
   onUpdate: (id: number, patch: Partial<Task>) => void;
@@ -71,6 +73,7 @@ export function GanttChart({
   statusDate,
   showBaseline,
   showHierarchyColors,
+  hierarchyPalette,
   showTrackingLine,
   extraDaysOff,
   onUpdate,
@@ -262,6 +265,12 @@ export function GanttChart({
     <div
       ref={ganttRef}
       className={`gantt-pane ${fitToWindow ? "fit-to-window" : ""} ${showHierarchyColors ? "hierarchy-colors" : ""}`}
+      style={{
+        "--hierarchy-color-0": hierarchyPalette[0],
+        "--hierarchy-color-1": hierarchyPalette[1],
+        "--hierarchy-color-2": hierarchyPalette[2],
+        "--hierarchy-color-3": hierarchyPalette[3],
+      } as React.CSSProperties}
       onScroll={(event) => syncScheduleVerticalScroll(event.currentTarget, ".task-pane")}
     >
       <div className="calendar-header" style={{ width: chartWidth }}>
@@ -389,7 +398,7 @@ export function GanttChart({
               <div
                 className={[
                   "task-bar",
-                  `level-${task.level}`,
+                  `level-${Math.min(task.level, 3)}`,
                   task.type === "summary" ? "summary-bar" : "",
                   criticalTaskIds.has(task.id) ? "critical-bar" : "",
                   selectedIds.has(task.id) ? "selected-gantt-bar" : "",
