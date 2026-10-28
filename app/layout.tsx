@@ -8,6 +8,7 @@ import "../styles/gantt.css";
 import "../styles/ux.css";
 import "../styles/print.css";
 import "../styles/report.css";
+import "../styles/sticky-workspace.css";
 
 export const metadata: Metadata = {
   title: "Snedo Aikataulu",

@@ -1,3 +1,4 @@
+import { syncScheduleVerticalScroll } from "@/lib/scrollSync";
 import {
   addDays,
   dateOffsetFrom,
@@ -256,7 +257,11 @@ export function GanttChart({
   const gridStep = dayWidth >= 12 ? dayWidth : dayWidth * 7;
 
   return (
-    <div ref={ganttRef} className={`gantt-pane ${fitToWindow ? "fit-to-window" : ""}`}>
+    <div
+      ref={ganttRef}
+      className={`gantt-pane ${fitToWindow ? "fit-to-window" : ""}`}
+      onScroll={(event) => syncScheduleVerticalScroll(event.currentTarget, ".task-pane")}
+    >
       <div className="calendar-header" style={{ width: chartWidth }}>
         <div className="calendar-month-row">
           {monthSegments.map((segment) => (
