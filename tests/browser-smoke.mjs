@@ -58,6 +58,47 @@ try {
   await page.getByRole("button", {name:"Projektit", exact:true}).first().click({timeout:12000});
   await page.getByRole("dialog",{name:"Projektit"}).waitFor({timeout:12000});
   console.log("PASS: Windows browser stays interactive after repeated actions; event loop latency:", heartbeat);
+  // Suuri aikataulu: yläosan ja sarakeotsikoiden pitää pysyä lukittuina.
+  await page.getByRole("dialog", { name: "Projektit" })
+    .getByRole("button", { name: "Sulje" }).click();
+  await page.setViewportSize({ width: 1440, height: 700 });
+  for (let index = 0; index < 25; index += 1) {
+    await page.getByRole("button", { name: "+ Työvaihe" }).click();
+  }
+  const beforeHeaderY = await page.locator(".topbar").evaluate((el) => Math.round(el.getBoundingClientRect().top));
+  await page.locator(".task-pane").evaluate((el) => {
+    el.scrollTop = 310;
+    el.dispatchEvent(new Event("scroll"));
+  });
+  await sleep(250);
+  const firstScroll = await page.evaluate(() => ({
+    table: document.querySelector(".task-pane")?.scrollTop ?? -1,
+    gantt: document.querySelector(".gantt-pane")?.scrollTop ?? -1,
+    topbar: Math.round(document.querySelector(".topbar")?.getBoundingClientRect().top ?? -1),
+    tableHeader: Math.round(document.querySelector(".schedule-table thead th")?.getBoundingClientRect().top ?? -1),
+    paneTop: Math.round(document.querySelector(".task-pane")?.getBoundingClientRect().top ?? -1),
+  }));
+  if (firstScroll.table < 100 || Math.abs(firstScroll.table - firstScroll.gantt) > 2) {
+    throw new Error("Table-to-Gantt vertical scroll is not synchronized: " + JSON.stringify(firstScroll));
+  }
+  if (firstScroll.topbar !== beforeHeaderY || Math.abs(firstScroll.tableHeader - firstScroll.paneTop) > 2) {
+    throw new Error("Workspace header is not locked: " + JSON.stringify(firstScroll));
+  }
+  await page.locator(".gantt-pane").evaluate((el) => {
+    el.scrollTop = 130;
+    el.dispatchEvent(new Event("scroll"));
+  });
+  await sleep(250);
+  const secondScroll = await page.evaluate(() => ({
+    table: document.querySelector(".task-pane")?.scrollTop ?? -1,
+    gantt: document.querySelector(".gantt-pane")?.scrollTop ?? -1,
+  }));
+  if (Math.abs(secondScroll.table - secondScroll.gantt) > 2 ||
+      Math.abs(secondScroll.table - 130) > 2) {
+    throw new Error("Gantt-to-table vertical scroll is not synchronized: " + JSON.stringify(secondScroll));
+  }
+  console.log("PASS: Locked toolbar, sticky table header and bidirectional synchronized scrolling.");
+
 
 } catch(error){
   console.error("FAIL: Snedo browser interaction test:",error);
