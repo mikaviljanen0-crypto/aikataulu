@@ -81,14 +81,19 @@ export function PrintReport(props: Props) {
   const ends = leaves.map((task) => workdayEnd(task.start, task.duration, props.extraDaysOff)).sort();
   const first = starts[0] ?? props.statusDate;
   const last = ends.at(-1) ?? props.statusDate;
-  const start = addDays(first, -5);
-  const end = addDays(last, 12);
+  // Lukitaan aikajanan ulkoreunat kokonaisiin kalenteriviikkoihin:
+  // kaikki viikkonumerot saavat yhtä leveän seitsemän päivän sarakkeen.
+  const firstMarginDay = addDays(first, -5);
+  const lastMarginDay = addDays(last, 12);
+  const startWeekday = new Date(`${firstMarginDay}T12:00:00Z`).getUTCDay() || 7;
+  const endWeekday = new Date(`${lastMarginDay}T12:00:00Z`).getUTCDay() || 7;
+  const start = addDays(firstMarginDay, 1 - startWeekday);
+  const end = addDays(lastMarginDay, 7 - endWeekday);
   const total = Math.max(1, daysBetween(start, end) + 1);
   const monthSegments = segments(start, total, "month");
   const weekSegments = segments(start, total, "week");
-  // A3-vaakasuunnassa 45–55 viikon numerot mahtuvat vielä omiin ruutuihinsa.
-  // Erittäin pitkissä aikatauluissa harvennetaan tekstiä, ei jakoviivoja.
-  const weekLabelStep = Math.max(1, Math.ceil(weekSegments.length / 55));
+  // A3-pituisessa sopimusyleisaikataulussa jokainen viikko näkyy numerona.
+  // Vain numerot, ei sanaa "vko" jokaisessa ahtaassa viikkosolussa.
   const pages: Task[][] = [];
   for (let index = 0; index < props.tasks.length; index += MAX_ROWS) {
     pages.push(props.tasks.slice(index, index + MAX_ROWS));
@@ -168,14 +173,14 @@ export function PrintReport(props: Props) {
                       {segment.count / total > .033 ? segment.label : ""}
                     </span>
                   ))}</div>
-                  <div className="report-week-labels">{weekSegments.map((segment, index) => (
+                  <div className="report-week-labels">{weekSegments.map((segment) => (
                     <span
                       key={segment.key}
                       className="report-week-number"
                       title={`Viikko ${segment.label}`}
                       style={{ left: `${segment.first / total * 100}%`, width: `${segment.count / total * 100}%` }}
                     >
-                      {index % weekLabelStep === 0 && segment.count / total > .011 ? segment.label : ""}
+                      {segment.label}
                     </span>
                   ))}</div>
                 </div>
