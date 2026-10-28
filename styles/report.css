@@ -378,6 +378,25 @@
     vector-effect: non-scaling-stroke;
   }
 
+
+  /* Sama hierarkiapaletti sopimus-PDF:ssä; myös värin vaihdot seuraavat mukana. */
+  .report-sheet.hierarchy-colors .report-plan-bar.level-0 {
+    background: var(--hierarchy-color-0);
+    border-color: #173b59;
+  }
+  .report-sheet.hierarchy-colors .report-plan-bar.level-1 {
+    background: var(--hierarchy-color-1);
+    border-color: #167a82;
+  }
+  .report-sheet.hierarchy-colors .report-plan-bar.level-2 {
+    background: var(--hierarchy-color-2);
+    border-color: #438d91;
+  }
+  .report-sheet.hierarchy-colors .report-plan-bar.level-3 {
+    background: var(--hierarchy-color-3);
+    border-color: #669da0;
+  }
+
   .report-footer {
     display: flex;
     justify-content: space-between;
