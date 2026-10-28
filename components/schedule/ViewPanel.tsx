@@ -1,4 +1,5 @@
 import type { TimelineZoom } from "./TimelineControls";
+import { HIERARCHY_LEVEL_NAMES, type HierarchyPalette } from "@/lib/hierarchyColors";
 
 type Props = {
   open: boolean;
@@ -9,6 +10,8 @@ type Props = {
   showWeekends: boolean;
   showToday: boolean;
   showBaseline: boolean;
+  showHierarchyColors: boolean;
+  hierarchyPalette: HierarchyPalette;
   onClose: () => void;
   onRangeStartChange: (value: string) => void;
   onRangeEndChange: (value: string) => void;
@@ -19,6 +22,8 @@ type Props = {
   onShowWeekendsChange: (value: boolean) => void;
   onShowTodayChange: (value: boolean) => void;
   onShowBaselineChange: (value: boolean) => void;
+  onShowHierarchyColorsChange: (value: boolean) => void;
+  onHierarchyColorChange: (level: number, value: string) => void;
 };
 
 export function ViewPanel(props: Props) {
@@ -74,8 +79,25 @@ export function ViewPanel(props: Props) {
           </label>
           <label className="view-panel-check">
             <input type="checkbox" checked={props.showBaseline} onChange={(e) => props.onShowBaselineChange(e.target.checked)} />
-            <span><strong>Näytä tavoite</strong><small>Tallennettu tavoite näkyy matalana harmaana janana.</small></span>
+            <span><strong>Näytä tavoite</strong><small>Tallennettu tavoite näkyy erillisenä tavoitejanana.</small></span>
           </label>
+          <label className="view-panel-check">
+            <input type="checkbox" checked={props.showHierarchyColors} onChange={(e) => props.onShowHierarchyColorsChange(e.target.checked)} />
+            <span><strong>Hierarkiatasojen värit</strong><small>Eri tasot erottuvat omilla väreillään sekä näytöllä että PDF:ssä. Toteuman ja tavoitteen värit säilyvät.</small></span>
+          </label>
+          {props.showHierarchyColors && <div className="hierarchy-palette-controls">
+            {HIERARCHY_LEVEL_NAMES.map((name, index) => (
+              <label key={name} className="hierarchy-color-field">
+                <span>{name}</span>
+                <input
+                  type="color"
+                  value={props.hierarchyPalette[index]}
+                  onChange={(event) => props.onHierarchyColorChange(index, event.target.value)}
+                  aria-label={name + " – janan väri"}
+                />
+              </label>
+            ))}
+          </div>}
         </section>
       </aside>
     </>

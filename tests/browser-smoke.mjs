@@ -99,6 +99,42 @@ try {
   }
   console.log("PASS: Locked toolbar, sticky table header and bidirectional synchronized scrolling.");
 
+  // Hierarkiavärit näkyvät sekä työskentelynäkymässä että A3-tulostuksessa.
+  const level0 = page.locator(".gantt-pane .task-bar.level-0").first();
+  const level1 = page.locator(".gantt-pane .task-bar.level-1").first();
+  if (await level0.count() === 0 || await level1.count() === 0) {
+    throw new Error("Expected main task and subtasks to have distinct hierarchy levels.");
+  }
+  const level0StartColor = await level0.evaluate(el => getComputedStyle(el).backgroundColor);
+  const level1StartColor = await level1.evaluate(el => getComputedStyle(el).backgroundColor);
+  if (level0StartColor !== "rgb(36, 82, 122)" || level1StartColor !== "rgb(54, 169, 173)") {
+    throw new Error("Hierarchy default colors missing: " + level0StartColor + ", " + level1StartColor);
+  }
+  await page.getByRole("button",{name:/Näkymä/}).click();
+  await page.locator('.hierarchy-color-field input[type="color"]').first().fill("#123456");
+  await page.locator('.view-panel-close').click();
+  const changedColor = await level0.evaluate(el => getComputedStyle(el).backgroundColor);
+  if (changedColor !== "rgb(18, 52, 86)") {
+    throw new Error("Editable hierarchy color was not applied to Gantt: " + changedColor);
+  }
+  await page.emulateMedia({ media: "print" });
+  const printedColor = await page.locator(".report-sheet.hierarchy-colors .report-plan-bar.level-0").first()
+    .evaluate(el => getComputedStyle(el).backgroundColor);
+  if (printedColor !== "rgb(18, 52, 86)") {
+    throw new Error("Editable hierarchy color missing from PDF print layout: " + printedColor);
+  }
+  await page.emulateMedia({ media: "screen" });
+  await page.getByRole("button",{name:/Näkymä/}).click();
+  const toggle = page.getByRole("checkbox", { name: /Hierarkiatasojen värit/ });
+  await toggle.uncheck();
+  await page.locator(".view-panel-close").click();
+  const oldStyle = await level0.evaluate(el => getComputedStyle(el).backgroundColor);
+  if (oldStyle === "rgb(18, 52, 86)") {
+    throw new Error("Turning off hierarchy colors did not restore the single-color style.");
+  }
+  console.log("PASS: Hierarchy color defaults, custom palette, print colors and on/off toggle.");
+
+
 
 } catch(error){
   console.error("FAIL: Snedo browser interaction test:",error);
