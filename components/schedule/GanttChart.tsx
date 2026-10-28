@@ -388,7 +388,7 @@ export function GanttChart({
           ))}
         </svg>
 
-        {visibleTasks.map((task) => {
+        {visibleTasks.map((task, visibleIndex) => {
           const originalIndex = tasks.findIndex((item) => item.id === task.id);
           const end = workdayEnd(task.start, task.duration, extraDaysOff);
           const calendarDays = Math.max(1, daysBetween(task.start, end) + 1);
@@ -406,7 +406,7 @@ export function GanttChart({
 
           return (
             <div
-              className={`gantt-row level-${task.level} ${selectedIds.has(task.id) ? "selected-gantt-row" : ""} ${behindIds.has(task.id) ? "behind-gantt-row" : ""}`}
+              className={`gantt-row level-${task.level} ${selectedIds.has(task.id) ? "selected-gantt-row" : ""} ${behindIds.has(task.id) ? "behind-gantt-row" : ""} ${(visibleIndex + 1) % 5 === 0 ? "guide-row" : ""}`}
               style={{ width: chartWidth }}
               key={task.id}
             >
