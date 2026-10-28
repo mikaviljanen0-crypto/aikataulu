@@ -106,3 +106,25 @@ jobs:
           name: browser-smoke-debug
           path: browser-smoke-failure.png
           if-no-files-found: ignore
+
+  windows-browser-interaction:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Precompile static release
+        run: npm run build
+        env:
+          SNEDO_STATIC_EXPORT: '1'
+      - name: Install browser
+        run: |
+          npm install --no-save --package-lock=false playwright
+          npx playwright install chromium
+      - name: Test interactivity on Windows
+        run: node tests/browser-smoke.mjs
