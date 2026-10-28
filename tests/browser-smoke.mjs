@@ -127,6 +127,27 @@ try {
   }
   console.log("PASS: Fifth-row guide alignment in table, Gantt and printed report.");
 
+  // Testataan oikeat pikselikoordinaatit, ei ainoastaan oikean luokan olemassaoloa.
+  await page.locator(".task-pane").evaluate(el => { el.scrollTop = 0; el.dispatchEvent(new Event("scroll")); });
+  await sleep(150);
+  const screenGeometry = await page.evaluate(() => {
+    const left = Array.from(document.querySelectorAll(".schedule-table tbody tr"));
+    const right = Array.from(document.querySelectorAll(".gantt-row"));
+    const last = Math.min(left.length, right.length) - 1;
+    return [0,4,9,last].filter((i,j,indices) => i >= 0 && i < left.length && indices.indexOf(i) === j)
+      .map(i => ({
+        row: i+1,
+        leftY: left[i].getBoundingClientRect().top,
+        rightY: right[i].getBoundingClientRect().top,
+      }));
+  });
+  if (screenGeometry.length < 2 ||
+      screenGeometry.some(row => Math.abs(row.leftY - row.rightY) > 1.5)) {
+    throw new Error("Screen table/Gantt row positions differ: " + JSON.stringify(screenGeometry));
+  }
+  console.log("PASS: Screen table and Gantt positions align in actual pixels.");
+
+
 
   // Hierarkiavärit näkyvät sekä työskentelynäkymässä että A3-tulostuksessa.
   const level0 = page.locator(".gantt-pane .task-bar.level-0").first();
@@ -147,6 +168,30 @@ try {
     throw new Error("Editable hierarchy color was not applied to Gantt: " + changedColor);
   }
   await page.emulateMedia({ media: "print" });
+  const printGeometry = await page.evaluate(() => {
+    const sheet = document.querySelector(".report-sheet");
+    if (!sheet) return { error: "No print sheet" };
+    const leftHead = sheet.querySelector(".report-column-head");
+    const rightHead = sheet.querySelector(".report-calendar");
+    const left = Array.from(sheet.querySelectorAll(".report-table-row"));
+    const right = Array.from(sheet.querySelectorAll(".report-chart-row"));
+    if (!leftHead || !rightHead || left.length !== right.length) return { error: "Different row counts" };
+    const last = left.length - 1;
+    return {
+      headers: [leftHead.getBoundingClientRect().height, rightHead.getBoundingClientRect().height],
+      rows: [0,4,9,last].filter((i,j,indices) => i >= 0 && i < left.length && indices.indexOf(i) === j)
+        .map(i => ({ row: i+1, leftY: left[i].getBoundingClientRect().top,
+                     rightY: right[i].getBoundingClientRect().top }))
+    };
+  });
+  if (printGeometry.error ||
+      Math.abs(printGeometry.headers[0] - printGeometry.headers[1]) > 1.5 ||
+      !printGeometry.rows?.length ||
+      printGeometry.rows.some(row => Math.abs(row.leftY - row.rightY) > 1.5)) {
+    throw new Error("Print table/Gantt positions differ: " + JSON.stringify(printGeometry));
+  }
+  console.log("PASS: A3 report headers and rows align in actual pixel coordinates.");
+
   const printedColor = await page.locator(".report-sheet.hierarchy-colors .report-plan-bar.level-0").first()
     .evaluate(el => getComputedStyle(el).backgroundColor);
   if (printedColor !== "rgb(18, 52, 86)") {
