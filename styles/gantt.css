@@ -182,5 +182,8 @@
 }
 .gantt-week-divider { border-left: 1px dashed #d4e0eb; z-index: 1; }
 .gantt-month-divider { border-left: 1px solid #9eb5c8; z-index: 2; }
-.gantt-row:nth-of-type(5n) { border-bottom: 1px solid #e5ebf1; }
+/* Apuviivat tulevat näkyvien työvaiheiden järjestysluvuista, eivät DOM-rivinumeroista. */
 .gantt-row.level-0 { background: #f2f6fa; }
+
+/* Vain joka viidennen näkyvän työvaiheen jälkeen kevyt apuviiva. */
+.gantt-row.guide-row { box-shadow: inset 0 -1px #d6e0ea; }
