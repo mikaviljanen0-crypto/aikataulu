@@ -42,6 +42,21 @@ try {
   console.log("PASS: React hydration and Projektit button work.");
   await page.getByRole("button",{name:"Luo",exact:true}).first().isVisible();
   console.log("PASS: Project dialog rendered.");
+  // Havaitaan viiveellä alkava pääsäikeen jumi: käyttäjän sivu piirtyi,
+  // mutta myöhemmin Edge ja Chrome näyttivät "Sivu ei vastaa".
+  await sleep(12000);
+  const heartbeat = await page.evaluate(() => new Promise((resolve) => {
+    const started = performance.now();
+    window.setTimeout(() => resolve(Math.round(performance.now() - started)), 75);
+  }));
+  if (heartbeat > 2000) throw new Error("Browser main-thread heartbeat delayed: " + heartbeat + " ms");
+  await page.getByRole("button", {name:"Sulje", exact:true}).first().click({timeout:12000}).catch(async () => {
+    await page.keyboard.press("Escape");
+  });
+  await page.getByRole("button", {name:"Projektit", exact:true}).first().click({timeout:12000});
+  await page.getByRole("dialog",{name:"Projektit"}).waitFor({timeout:12000});
+  console.log("PASS: Windows browser stays interactive after repeated actions; event loop latency:", heartbeat);
+
 } catch(error){
   console.error("FAIL: Snedo browser interaction test:",error);
   console.error("Console/network problems:",messages.slice(-25).join("\n"));
