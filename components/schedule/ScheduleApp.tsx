@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { initialTasks } from "@/data/sampleTasks";
+import { DEFAULT_HIERARCHY_PALETTE, readHierarchyPalette, type HierarchyPalette } from "@/lib/hierarchyColors";
 import { getCriticalTaskIds } from "@/lib/criticalPath";
 import { scheduleDependencies } from "@/lib/dependencies";
 import {
@@ -96,6 +97,7 @@ export default function ScheduleApp() {
   const [showToday, setShowToday] = useState(true);
   const [showBaseline, setShowBaseline] = useState(true);
   const [showHierarchyColors, setShowHierarchyColors] = useState(true);
+  const [hierarchyPalette, setHierarchyPalette] = useState<HierarchyPalette>(DEFAULT_HIERARCHY_PALETTE);
   const [activeNav, setActiveNav] = useState("general");
   const [taskQuery, setTaskQuery] = useState("");
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("all");
@@ -187,6 +189,7 @@ export default function ScheduleApp() {
         setShowToday(view.showToday ?? true);
         setShowBaseline(view.showBaseline ?? true);
         setShowHierarchyColors(view.showHierarchyColors ?? true);
+        setHierarchyPalette(readHierarchyPalette(view.hierarchyPalette) ?? DEFAULT_HIERARCHY_PALETTE);
         setTaskFilter(view.taskFilter ?? "all");
       } catch {
         // Näkymä palautuu oletukseen.
@@ -320,6 +323,7 @@ export default function ScheduleApp() {
         showToday,
         showBaseline,
         showHierarchyColors,
+        hierarchyPalette,
         taskFilter,
       }),
     );
@@ -337,6 +341,7 @@ export default function ScheduleApp() {
     showToday,
     showBaseline,
     showHierarchyColors,
+    hierarchyPalette,
     taskFilter,
   ]);
 
@@ -1013,6 +1018,7 @@ export default function ScheduleApp() {
           statusDate={statusDate}
           showBaseline={showBaseline}
           showHierarchyColors={showHierarchyColors}
+          hierarchyPalette={hierarchyPalette}
           showTracking={showTrackingColumns}
           extraDaysOff={extraDaysOff}
         />
@@ -1063,6 +1069,7 @@ export default function ScheduleApp() {
             statusDate={statusDate}
             showBaseline={showBaseline}
             showHierarchyColors={showHierarchyColors}
+            hierarchyPalette={hierarchyPalette}
             showTrackingLine={showTrackingColumns}
             extraDaysOff={extraDaysOff}
             onUpdate={updateTask}
@@ -1079,6 +1086,7 @@ export default function ScheduleApp() {
           showToday={showToday}
           showBaseline={showBaseline}
           showHierarchyColors={showHierarchyColors}
+          hierarchyPalette={hierarchyPalette}
           onClose={() => setViewPanelOpen(false)}
           onRangeStartChange={setRangeStart}
           onRangeEndChange={setRangeEnd}
@@ -1090,6 +1098,7 @@ export default function ScheduleApp() {
           onShowTodayChange={setShowToday}
           onShowBaselineChange={setShowBaseline}
           onShowHierarchyColorsChange={setShowHierarchyColors}
+          onHierarchyColorChange={(level, value) => setHierarchyPalette((current) => current.map((color, index) => index === level ? value : color) as HierarchyPalette)}
         />
 
         <ProjectsPanel
