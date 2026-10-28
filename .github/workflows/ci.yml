@@ -78,3 +78,31 @@ jobs:
           path: out/
           if-no-files-found: error
           retention-days: 14
+
+  browser-interaction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build offline release
+        run: npm run build
+        env:
+          SNEDO_STATIC_EXPORT: '1'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright
+          npx playwright install --with-deps chromium
+      - name: Open program and click Projects
+        run: node tests/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-smoke-debug
+          path: browser-smoke-failure.png
+          if-no-files-found: ignore
