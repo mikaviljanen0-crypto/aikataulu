@@ -147,6 +147,29 @@ try {
   }
   console.log("PASS: Screen table and Gantt positions align in actual pixels.");
 
+  const screenColumns = await page.evaluate(() => {
+    const comparisons = [
+      [".calendar-week-row .week-segment", ".gantt-week-divider"],
+      [".calendar-month-row .month-segment", ".gantt-month-divider"],
+    ];
+    return comparisons.flatMap(([labels,lines]) => {
+      const header = Array.from(document.querySelectorAll(labels)).slice(1);
+      const body = Array.from(document.querySelectorAll(lines));
+      return header.slice(0, Math.min(body.length, 8)).map((element,i) => ({
+        kind:labels, index:i+1,
+        headerX:element.getBoundingClientRect().left,
+        chartX:body[i].getBoundingClientRect().left,
+        borderLeft:getComputedStyle(element).borderLeftWidth,
+      }));
+    });
+  });
+  if (screenColumns.length < 4 || screenColumns.some(x =>
+    Math.abs(x.headerX-x.chartX) > .6 || parseFloat(x.borderLeft) <= 0)) {
+    throw new Error("Screen calendar vertical lines are misaligned: " + JSON.stringify(screenColumns));
+  }
+  console.log("PASS: Screen calendar month/week dividers use exactly the same positions as Gantt.");
+
+
 
 
   // Hierarkiavärit näkyvät sekä työskentelynäkymässä että A3-tulostuksessa.
@@ -191,6 +214,31 @@ try {
     throw new Error("Print table/Gantt positions differ: " + JSON.stringify(printGeometry));
   }
   console.log("PASS: A3 report headers and rows align in actual pixel coordinates.");
+
+  const printColumns = await page.evaluate(() => {
+    const sheet=document.querySelector(".report-sheet");
+    if (!sheet) return [];
+    const comparisons=[
+      [".report-week-labels > span", ".report-week-gridline", 1],
+      [".report-month-labels > span", ".report-month-gridline", 0],
+    ];
+    return comparisons.flatMap(([labels,lines,offset])=>{
+      const headers=Array.from(sheet.querySelectorAll(labels)).slice(1);
+      const body=Array.from(sheet.querySelectorAll(lines));
+      return headers.slice(0,Math.min(8,body.length)).map((element,i)=>({
+        kind:labels,index:i+1,
+        headerX:element.getBoundingClientRect().left,
+        chartX:body[i+offset]?.getBoundingClientRect().left ?? -999,
+        borderLeft:getComputedStyle(element).borderLeftWidth,
+      }));
+    });
+  });
+  if (printColumns.length < 4 || printColumns.some(x=>
+    Math.abs(x.headerX-x.chartX) > .7 || parseFloat(x.borderLeft) <= 0)) {
+    throw new Error("A3 calendar vertical lines are misaligned: "+JSON.stringify(printColumns));
+  }
+  console.log("PASS: A3 calendar month/week dividers use exactly the same positions as Gantt.");
+
 
   const printedColor = await page.locator(".report-sheet.hierarchy-colors .report-plan-bar.level-0").first()
     .evaluate(el => getComputedStyle(el).backgroundColor);
