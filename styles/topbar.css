@@ -1,42 +1,100 @@
 .topbar {
-  min-height: 58px;
-  background: #172b4d;
-  color: white;
+  min-height: 50px;
+  background: #fff;
+  color: #17202a;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
+  padding: 5px 10px 5px 12px;
+  border-bottom: 1px solid var(--border);
+  gap: 14px;
 }
 
-.brand {
+.page-title {
   display: grid;
-  gap: 2px;
+  min-width: 145px;
+  line-height: 1.05;
 }
 
-.brand strong {
-  font-size: 20px;
+.page-title span {
+  color: var(--primary);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .09em;
 }
 
-.brand span {
-  color: #c5d1df;
-  font-size: 12px;
-}
+.page-title strong { font-size: 15px; }
 
-.topbar nav {
+.topbar-actions {
   display: flex;
+  align-items: center;
   gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+
+.topbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 7px;
+  border-right: 1px solid #e2e7ed;
+}
+
+.topbar-group.compact button { min-width: 29px; padding-inline: 5px; }
+
+.topbar-group-right {
+  margin-left: auto;
+  border-right: 0;
+  padding-right: 0;
 }
 
 .topbar button {
-  background: white;
-  color: #172b4d;
+  min-height: 28px;
+  padding: 4px 8px;
+  background: #fff;
+  color: #26364a;
 }
 
-.topbar button:hover {
-  background: #edf3fb;
+.active-tool {
+  border-color: #8db4db !important;
+  background: var(--primary-soft) !important;
+  color: #0d4f91 !important;
+  font-weight: 600;
 }
 
-.topbar button.primary {
-  background: var(--primary);
-  color: white;
+.danger-text { color: #b42318 !important; }
+
+.more-menu { position: relative; }
+.more-menu summary {
+  list-style: none;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd4de;
+  border-radius: 3px;
+  padding: 4px 9px;
+  cursor: pointer;
+  background: #fff;
+}
+.more-menu summary::-webkit-details-marker { display: none; }
+.more-menu-popover {
+  position: absolute;
+  right: 0;
+  top: 32px;
+  z-index: 80;
+  width: 150px;
+  display: grid;
+  gap: 2px;
+  padding: 5px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 22px rgb(15 23 42 / 15%);
+}
+.more-menu-popover button { text-align: left; width: 100%; }
+
+@media (max-width: 1380px) {
+  .topbar { gap: 6px; }
+  .page-title { min-width: 110px; }
+  .topbar-group { gap: 2px; padding-right: 4px; }
+  .topbar button, .more-menu summary { padding-inline: 6px; }
 }

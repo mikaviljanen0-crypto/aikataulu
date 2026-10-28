@@ -1,7 +1,12 @@
-@import "tailwindcss";
-@import "../styles/base.css";
-@import "../styles/topbar.css";
-@import "../styles/projectbar.css";
-@import "../styles/schedule.css";
-@import "../styles/gantt.css";
-@import "../styles/print.css";
+/* Snedo käyttää omia tyylejään styles-kansiosta.
+   Aloituspohjan Tailwind-generointi ei ole tarpeen aikataulusovelluksessa,
+   ja voi hidastaa Windowsin paikallista käynnistystä. */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+h1, h2, h3, h4, h5, h6, p, figure {
+  margin: 0;
+}
+button, input, select, textarea {
+  font: inherit;
+}

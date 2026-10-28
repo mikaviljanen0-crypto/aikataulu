@@ -1,0 +1,331 @@
+/* Snedo Aikataulu 1.1 – erillinen työmaakokousraportti. */
+@media screen {
+  .snedo-print { display: none !important; }
+}
+
+@page {
+  size: A3 landscape;
+  margin: 9mm 10mm;
+}
+
+@media print {
+  body, html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: #253448 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .snedo-sidebar, .topbar, .projectbar, .quickbar, .schedule,
+  .view-panel, .view-panel-backdrop, .ux-overlay, .statusbar,
+  .schedule-message, .print-report-header, .print-legend,
+  .print-report-footer, .snedo-dialog-layer, .hidden-file-input {
+    display: none !important;
+  }
+
+  .snedo-shell, .workspace {
+    display: block !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .snedo-print {
+    display: block !important;
+    width: 100% !important;
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  }
+
+  .report-sheet {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    page-break-after: always;
+    break-after: page;
+    box-sizing: border-box;
+  }
+
+  .report-sheet:last-child { break-after: auto; page-break-after: auto; }
+
+  .report-head {
+    display: grid;
+    grid-template-columns: 43mm 1fr 42mm;
+    column-gap: 5mm;
+    align-items: center;
+    min-height: 22mm;
+    padding: 0 0 4mm;
+    border-bottom: .55mm solid #155da8;
+  }
+
+  .report-logo {
+    display: flex;
+    align-items: center;
+    gap: 2.5mm;
+    color: #182b42;
+  }
+
+  .report-logo > span {
+    display: grid;
+    place-items: center;
+    width: 10mm;
+    height: 10mm;
+    background: #f6a927;
+    border-radius: 2mm;
+    color: #172333;
+    font-size: 17pt;
+    font-weight: 800;
+  }
+
+  .report-logo > strong {
+    font-size: 12.5pt;
+    font-weight: 800;
+    letter-spacing: .13em;
+  }
+
+  .report-title { min-width: 0; }
+  .report-title small {
+    display: block;
+    font-size: 7pt;
+    font-weight: 800;
+    letter-spacing: .11em;
+    color: #155da8;
+  }
+
+  .report-title h1 {
+    font-size: 19pt;
+    margin: 1.1mm 0;
+    line-height: 1.12;
+    font-weight: 650;
+    color: #172538;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .report-title p {
+    margin: 0;
+    color: #68788a;
+    font-size: 8pt;
+  }
+
+  .report-date {
+    display: grid;
+    justify-items: end;
+    gap: .8mm;
+    background: #f6f9fc;
+    border: .2mm solid #d8e2ec;
+    border-radius: 2mm;
+    padding: 3mm;
+  }
+
+  .report-date small {
+    font-size: 7pt;
+    font-weight: 750;
+    color: #6f8091;
+    letter-spacing: .04em;
+  }
+  .report-date strong { font-size: 13.5pt; color: #1b344e; }
+  .report-date span { font-size: 7pt; color: #8190a0; }
+
+  .report-legend {
+    display: flex;
+    align-items: center;
+    gap: 6mm;
+    min-height: 9mm;
+    padding: 1.5mm 0;
+    color: #65778a;
+    font-size: 7.4pt;
+  }
+
+  .report-legend span { display: inline-flex; align-items: center; gap: 1.4mm; }
+  .report-legend i {
+    display: block;
+    width: 6mm;
+    height: 2mm;
+    border-radius: .5mm;
+    background: #44b9bb;
+  }
+  .report-legend i.target { background: #eba13d; }
+  .report-legend i.actual { background: #237b4c; }
+  .report-legend i.tracking { height: 0; border-radius: 0; border-top: .55mm solid #de3635; background: transparent; }
+  .report-legend i.today { height: 4mm; width: 0; border-left: .55mm solid #20a74c; background: transparent; border-radius: 0; }
+
+  .report-table-grid {
+    display: grid;
+    grid-template-columns: 39% 61%;
+    min-width: 0;
+    width: 100%;
+    border-top: .25mm solid #c8d4df;
+  }
+  .report-left { min-width: 0; border-right: .3mm solid #b6c6d5; }
+  .report-right { min-width: 0; overflow: hidden; }
+
+  .report-column-head, .report-table-row {
+    display: grid;
+    grid-template-columns: 11mm minmax(0, 1fr) 11mm 20mm 20mm 13mm 15mm;
+    align-items: center;
+  }
+
+  .report-column-head {
+    height: 10mm;
+    color: #4c6276;
+    background: #f0f4f8;
+    border-bottom: .3mm solid #c2cfda;
+    font-weight: 700;
+    font-size: 6.6pt;
+  }
+
+  .report-column-head span, .report-table-row > span,
+  .report-table-row > strong {
+    display: block;
+    padding: 0 1.2mm;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .report-table-row {
+    height: var(--report-row-height);
+    border-bottom: .18mm solid #e1e6eb;
+    color: #2e4155;
+    font-size: 7.35pt;
+  }
+
+  .report-table-row > strong { font-weight: 510; }
+  .report-table-row.summary {
+    background: #e9f1f9;
+    color: #1b3959;
+    font-weight: 700;
+  }
+  .report-table-row.summary > strong { font-weight: 750; }
+  .report-table-row.late > span:first-child {
+    border-left: .8mm solid #e2a16a;
+    padding-left: .7mm;
+  }
+  .report-table-row > span:nth-child(3),
+  .report-table-row > span:nth-child(6),
+  .report-table-row > span:nth-child(7) { text-align: center; }
+
+  .report-calendar {
+    height: 10mm;
+    background: #f0f4f8;
+    border-bottom: .3mm solid #c2cfda;
+  }
+
+  .report-calendar > div { height: 5mm; position: relative; }
+  .report-calendar > div:first-child { border-bottom: .15mm solid #d1dce5; }
+  .report-calendar > div > span {
+    position: absolute;
+    top: 0;
+    height: 5mm;
+    line-height: 5mm;
+    text-align: center;
+    border-right: .15mm solid #d1dce5;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 6.8pt;
+    font-weight: 700;
+    color: #516578;
+  }
+
+  .report-chart-body {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .report-week-gridline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: .15mm;
+    background: #dfe7ed;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .report-chart-row {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: var(--report-row-height);
+    border-bottom: .18mm solid #e1e6eb;
+    z-index: 2;
+  }
+
+  .report-chart-row.summary { background: rgba(232, 242, 250, .55); }
+
+  .report-plan-bar {
+    position: absolute;
+    top: calc(var(--report-row-height) * .28);
+    height: calc(var(--report-row-height) * .43);
+    min-height: 1.8mm;
+    max-height: 4mm;
+    border: .18mm solid #157b7d;
+    border-radius: .55mm;
+    background: #43b9bb;
+    overflow: hidden;
+  }
+
+  .report-chart-row.summary .report-plan-bar {
+    background: #2e9ca5;
+    border-color: #1b6876;
+  }
+
+  .report-actual-fill { height: 100%; background: #257944; }
+
+  .report-target-bar {
+    position: absolute;
+    top: calc(var(--report-row-height) * .77);
+    height: .75mm;
+    background: #eaa345;
+    border-radius: .2mm;
+    z-index: 2;
+  }
+
+  .report-today-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: .46mm;
+    background: #1ea34d;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .report-tracking {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    width: 100%;
+    overflow: visible;
+    z-index: 6;
+    pointer-events: none;
+  }
+  .report-tracking path {
+    fill: none;
+    stroke: #df3a35;
+    stroke-width: 2.25;
+    stroke-linejoin: round;
+    stroke-linecap: square;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .report-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 5mm;
+    padding-top: 2.3mm;
+    border-top: .2mm solid #dce5ed;
+    color: #7a8794;
+    font-size: 7pt;
+  }
+}

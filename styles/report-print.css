@@ -1,0 +1,140 @@
+@page { size: A3 landscape; margin: 9mm 10mm; }
+
+@media screen {
+  .snedo-print { display: none !important; }
+}
+
+@media print {
+  html, body, .snedo-shell, .workspace {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .snedo-sidebar,
+  .workspace > :not(.snedo-print) {
+    display: none !important;
+  }
+  .snedo-print {
+    display: block !important;
+    width: 100% !important;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #263648;
+  }
+  .report-sheet {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    padding: 0 0 12mm;
+    break-after: page;
+    page-break-after: always;
+  }
+  .report-sheet:last-child { break-after: auto; page-break-after: auto; }
+  .report-head {
+    display: grid;
+    grid-template-columns: 44mm 1fr 45mm;
+    align-items: center;
+    gap: 4mm;
+    min-height: 25mm;
+    border-bottom: .55mm solid #155da8;
+    margin-bottom: 2mm;
+    padding-bottom: 4mm;
+  }
+  .report-logo { display: flex; align-items: center; gap: 3mm; }
+  .report-logo span {
+    width: 10mm; height: 10mm; background: #f6aa2f; color: #182a3a;
+    border-radius: 2mm; display: grid; place-items: center; font-size: 16pt; font-weight: 850;
+  }
+  .report-logo strong { font-weight: 800; letter-spacing: .12em; color: #233950; font-size: 13pt; }
+  .report-title small { font-size: 7.2pt; font-weight: 800; letter-spacing: .12em; color: #155da8; }
+  .report-title h1 { margin: 1.4mm 0 1mm; font-size: 18pt; font-weight: 650; line-height: 1.1; }
+  .report-title p { margin: 0; color: #718092; font-size: 8.4pt; }
+  .report-date {
+    justify-self: end; min-width: 42mm; display: grid; justify-items: end; gap: 1mm;
+    border: .25mm solid #dae5f0; border-radius: 2mm; background: #f8fafc; padding: 2.5mm 3.2mm;
+  }
+  .report-date small { font-size: 6.7pt; color: #728396; letter-spacing: .07em; font-weight: 800; }
+  .report-date strong { font-size: 12pt; font-weight: 750; }
+  .report-date span { font-size: 7pt; color: #8895a3; }
+  .report-legend {
+    height: 8mm; display: flex; align-items: center; gap: 7mm;
+    color: #637386; font-size: 7.2pt; white-space: nowrap;
+  }
+  .report-legend > span { display: inline-flex; align-items: center; gap: 1.6mm; }
+  .report-legend i { display: inline-block; width: 6mm; height: 2mm; border-radius: .6mm; }
+  .report-legend i.plan { background: #43b9bb; }
+  .report-legend i.target { background: #f3aa44; }
+  .report-legend i.actual { background: #237b56; }
+  .report-legend i.tracking { border-top: .6mm solid #e53935; height: 0; border-radius: 0; }
+  .report-legend i.today { border-left: .6mm solid #18a83b; width: 0; height: 3mm; border-radius: 0; }
+  .report-table-grid { display: grid; grid-template-columns: 44% 56%; align-items: start; }
+  .report-left { min-width: 0; border-right: .3mm solid #a9bdd0; }
+  .report-column-head {
+    height: 9mm; display: grid;
+    grid-template-columns: 10% 34% 8% 14% 14% 10% 10%;
+    align-items: end; padding-bottom: 2mm;
+    border-bottom: .3mm solid #bbcbd9;
+    background: #f0f5f9; color: #637488;
+    font-size: 7pt; font-weight: 750; text-transform: uppercase;
+  }
+  .report-column-head span { padding: 0 1mm; white-space: nowrap; overflow: hidden; }
+  .report-table-row {
+    display: grid; grid-template-columns: 10% 34% 8% 14% 14% 10% 10%;
+    align-items: center; height: var(--report-row-height);
+    border-bottom: .16mm solid #e3e8ee;
+    font-size: 7.5pt;
+    font-variant-numeric: tabular-nums;
+  }
+  .report-table-row > * { padding: 0 1mm; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .report-table-row strong { font-weight: 500; }
+  .report-table-row.summary { background: #eaf2f9; color: #163e64; border-bottom-color: #cdddea; }
+  .report-table-row.summary strong { font-weight: 800; }
+  .report-table-row.late > span:first-child { border-left: .8mm solid #db8b47; }
+  .report-right { min-width: 0; }
+  .report-calendar { height: 9mm; background: #f0f5f9; border-bottom: .3mm solid #bbcbd9; }
+  .report-calendar > div { position: relative; height: 4.5mm; border-bottom: .15mm solid #dce4ec; }
+  .report-calendar > div > span {
+    position: absolute; top: 0; height: 4.5mm; display: block;
+    overflow: hidden; border-right: .12mm solid #cfdae4;
+    color: #637488; font-size: 6.9pt; line-height: 4.5mm; text-align: center;
+    white-space: nowrap; text-transform: capitalize;
+  }
+  .report-calendar > div:first-child > span { font-weight: 700; }
+  .report-chart-body { position: relative; overflow: hidden; }
+  .report-week-gridline {
+    position: absolute; top: 0; bottom: 0; border-left: .14mm solid #e3e9ef; z-index: 0;
+  }
+  .report-chart-row {
+    position: absolute; width: 100%; height: var(--report-row-height);
+    left: 0; border-bottom: .16mm solid #e3e8ee;
+  }
+  .report-chart-row.summary { background: #f4f8fb; }
+  .report-plan-bar {
+    position: absolute; top: 29%; height: 42%;
+    border-radius: .5mm; background: #43b9bb; border: .18mm solid #168a8d; z-index: 2;
+    overflow: hidden;
+  }
+  .report-chart-row.summary .report-plan-bar { background: #2b9da1; border-color: #087176; }
+  .report-actual-fill { height: 100%; background: #237b56; opacity: .86; }
+  .report-target-bar {
+    position: absolute; top: 77%; height: .7mm;
+    background: #f3aa44; border-radius: 1mm; z-index: 3;
+  }
+  .report-today-line {
+    position: absolute; top: 0; bottom: 0; width: .45mm; background: #18a83b; z-index: 6;
+  }
+  .report-tracking {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 7; pointer-events: none;
+  }
+  .report-tracking path { fill: none; stroke: #e53935; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+  .report-footer {
+    position: relative; display: flex; justify-content: space-between;
+    gap: 5mm; align-items: center; color: #8090a0; font-size: 7.1pt;
+    border-top: .2mm solid #dbe4eb; padding-top: 2mm; margin-top: 8mm;
+  }
+}

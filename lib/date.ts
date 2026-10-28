@@ -1,23 +1,25 @@
 const DAY_MS = 86_400_000;
 
+// Date-only values must be independent of the browser's timezone.
+// Using local midnight with toISOString() causes addDays(date, 1)
+// to return the same day in Finland (UTC+2/+3), freezing progress loops.
+function parseUtcDate(value: string): Date {
+  return new Date(`${value}T12:00:00Z`);
+}
+
 export function dateOffsetFrom(date: string, rangeStart: string): number {
-  return Math.round(
-    (new Date(`${date}T00:00:00`).getTime() -
-      new Date(`${rangeStart}T00:00:00`).getTime()) /
-      DAY_MS,
-  );
+  return daysBetween(rangeStart, date);
 }
 
 export function addDays(date: string, amount: number): string {
-  const value = new Date(`${date}T00:00:00`);
-  value.setDate(value.getDate() + amount);
+  const value = parseUtcDate(date);
+  value.setUTCDate(value.getUTCDate() + amount);
   return value.toISOString().slice(0, 10);
 }
 
 export function formatEndDate(start: string, duration: number): string {
-  const date = new Date(`${start}T00:00:00`);
-  date.setDate(date.getDate() + Math.max(1, duration) - 1);
-  return date.toLocaleDateString("fi-FI");
+  const end = endDateIso(start, duration);
+  return parseUtcDate(end).toLocaleDateString("fi-FI", { timeZone: "UTC" });
 }
 
 export function endDateIso(start: string, duration: number): string {
@@ -25,11 +27,7 @@ export function endDateIso(start: string, duration: number): string {
 }
 
 export function daysBetween(start: string, end: string): number {
-  return Math.round(
-    (new Date(`${end}T00:00:00`).getTime() -
-      new Date(`${start}T00:00:00`).getTime()) /
-      DAY_MS,
-  );
+  return Math.round((parseUtcDate(end).getTime() - parseUtcDate(start).getTime()) / DAY_MS);
 }
 
 export function minIsoDate(values: string[]): string {

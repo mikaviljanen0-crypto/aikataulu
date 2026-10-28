@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - snedo-aikataulu-1-1-kaytettavyys
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        id: install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Calendar and regression tests
+        run: npm test
+      - name: Production build
+        # Report build errors even when lint fails, without hiding lint failures.
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
+
+  windows-dev-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Start Webpack dev server and verify localhost
+        run: node tests/windows-smoke.mjs
+
+  offline-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Precompile static Snedo Aikataulu
+        run: npm run build
+        env:
+          SNEDO_STATIC_EXPORT: '1'
+      - name: Verify static package serves locally
+        shell: bash
+        run: |
+          test -f out/index.html
+          node scripts/serve-static.mjs > /tmp/snedo-server.log 2>&1 &
+          for i in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:3000/ > /tmp/snedo-index.html; then
+              break
+            fi
+            sleep 1
+          done
+          grep -q 'Snedo Aikataulu' /tmp/snedo-index.html
+          grep -q '/_next/' /tmp/snedo-index.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Snedo-Aikataulu-1.1-valmis-paketti
+          path: out/
+          if-no-files-found: error
+          retention-days: 14
+
+  browser-interaction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build offline release
+        run: npm run build
+        env:
+          SNEDO_STATIC_EXPORT: '1'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright
+          npx playwright install --with-deps chromium
+      - name: Open program and click Projects
+        run: node tests/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-smoke-debug
+          path: browser-smoke-failure.png
+          if-no-files-found: ignore
+
+  windows-browser-interaction:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Precompile static release
+        run: npm run build
+        env:
+          SNEDO_STATIC_EXPORT: '1'
+      - name: Install browser
+        run: |
+          npm install --no-save --package-lock=false playwright
+          npx playwright install chromium
+      - name: Test interactivity on Windows
+        run: node tests/browser-smoke.mjs

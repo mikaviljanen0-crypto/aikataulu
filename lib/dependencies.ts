@@ -1,4 +1,4 @@
-import { addDays, endDateIso } from "@/lib/date";
+import { addWorkdays, nextWorkday, workdayEnd } from "@/lib/calendar";
 import type { Task } from "@/types/schedule";
 
 export type DependencyResult = {
@@ -7,7 +7,10 @@ export type DependencyResult = {
   errors: string[];
 };
 
-export function scheduleDependencies(tasks: Task[]): DependencyResult {
+export function scheduleDependencies(
+  tasks: Task[],
+  extraDaysOff: string[] = [],
+): DependencyResult {
   const taskMap = new Map(tasks.map((task) => [task.id, { ...task }]));
   const visiting = new Set<number>();
   const visited = new Set<number>();
@@ -16,7 +19,6 @@ export function scheduleDependencies(tasks: Task[]): DependencyResult {
 
   function resolve(taskId: number) {
     if (visited.has(taskId)) return;
-
     if (visiting.has(taskId)) {
       const task = taskMap.get(taskId);
       errors.push(
@@ -35,19 +37,24 @@ export function scheduleDependencies(tasks: Task[]): DependencyResult {
     resolve(task.predecessorId);
 
     const predecessor = taskMap.get(task.predecessorId);
-
     if (!predecessor) {
       errors.push(`Edeltävää tehtävää ei löytynyt tehtävälle "${task.name}".`);
     } else if (predecessor.id === task.id) {
       errors.push(`Tehtävä "${task.name}" ei voi olla oma edeltäjänsä.`);
     } else {
-      const predecessorEnd = endDateIso(
+      const predecessorEnd = workdayEnd(
         predecessor.start,
         predecessor.duration,
+        extraDaysOff,
       );
-      const requiredStart = addDays(
-        predecessorEnd,
-        1 + (task.lagDays ?? 0),
+      const firstPossible = nextWorkday(
+        addWorkdays(predecessorEnd, 1, extraDaysOff),
+        extraDaysOff,
+      );
+      const requiredStart = addWorkdays(
+        firstPossible,
+        task.lagDays ?? 0,
+        extraDaysOff,
       );
 
       if (requiredStart !== task.start) {
