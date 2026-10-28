@@ -408,3 +408,25 @@
     font-size: 7pt;
   }
 }
+
+/* Snedo 1.4: tulosteessa kolmiosainen kalenteri ja kevyt viikkoruudukko. */
+@media print {
+  .report-calendar { height: 12mm; }
+  .report-calendar > div { height: 4mm; }
+  .report-calendar > div > span { height: 4mm; line-height: 4mm; }
+  .report-calendar .report-year-labels { background: #e7eff7; border-bottom: .12mm solid #b9cbd9; }
+  .report-calendar .report-year-labels > span {
+    color: #254866; font-size: 7pt; font-weight: 800;
+    border-right: .25mm solid #a9bfd0;
+  }
+  .report-calendar .report-month-labels { background: #eff5f9; border-bottom: .1mm solid #d0dce7; }
+  .report-week-gridline {
+    width: 0 !important;
+    background: transparent !important;
+    border-left: .12mm dashed #cfdae5;
+  }
+  .report-month-gridline { background: #a9bfd0; width: .26mm; }
+  .report-chart-row:not(.summary) { border-bottom: none; }
+  .report-chart-row.summary { border-bottom: .18mm solid #d4e0ea; }
+  .report-table-row.summary { background: #e9f1f9; }
+}
