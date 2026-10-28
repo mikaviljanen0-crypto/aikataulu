@@ -1,0 +1,89 @@
+/* Snedo Aikataulu 1.2: kaikki tärkeät työkalut ja sarakeotsikot pysyvät näkyvissä.
+   Vieritetään vain aikataulun rivejä, ei koko sovelluksen yläosaa. */
+@media screen {
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .snedo-shell {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .snedo-sidebar {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .workspace {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .workspace-locked-header {
+    position: relative;
+    z-index: 25;
+    flex: 0 0 auto;
+    background: #fff;
+    box-shadow: 0 2px 8px rgb(20 43 65 / 5%);
+  }
+
+  .schedule {
+    flex: 1 1 0%;
+    height: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .task-pane,
+  .gantt-pane {
+    min-height: 0;
+    height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .schedule-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 16;
+    background: #edf2f7;
+  }
+
+  .gantt-pane .calendar-header {
+    position: sticky;
+    top: 0;
+    z-index: 16;
+  }
+
+  .statusbar {
+    flex: 0 0 auto;
+  }
+
+  .pane-resizer {
+    height: 100%;
+  }
+}
+
+@media print {
+  html,
+  body,
+  .snedo-shell,
+  .workspace {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  .workspace-locked-header {
+    display: none !important;
+  }
+  .schedule {
+    display: none !important;
+  }
+}
