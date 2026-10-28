@@ -106,6 +106,8 @@ export function GanttChart({
       iso: value,
       date,
       index,
+      yearKey: `${date.getFullYear()}`,
+      yearLabel: `${date.getFullYear()}`,
       monthKey: `${date.getFullYear()}-${date.getMonth()}`,
       monthLabel: date.toLocaleDateString("fi-FI", { month: "long" }),
       weekKey: `${date.getFullYear()}-${isoWeekNumber(date)}`,
@@ -114,6 +116,15 @@ export function GanttChart({
       workday: isWorkday(value, extraDaysOff),
     };
   });
+
+  const yearSegments = days.reduce<Array<{key:string;label:string;start:number;days:number}>>(
+    (segments, day) => {
+      const prev = segments.at(-1);
+      if (prev?.key === day.yearKey) prev.days += 1;
+      else segments.push({key:day.yearKey,label:day.yearLabel,start:day.index,days:1});
+      return segments;
+    }, [],
+  );
 
   const monthSegments = days.reduce<Array<{key:string; label:string; start:number; days:number}>>(
     (segments, day) => {
@@ -259,7 +270,6 @@ export function GanttChart({
     window.addEventListener("pointercancel", onUp, { once: true });
   }
 
-  const gridStep = dayWidth >= 12 ? dayWidth : dayWidth * 7;
 
   return (
     <div
@@ -274,6 +284,14 @@ export function GanttChart({
       onScroll={(event) => syncScheduleVerticalScroll(event.currentTarget, ".task-pane")}
     >
       <div className="calendar-header" style={{ width: chartWidth }}>
+        <div className="calendar-year-row">
+          {yearSegments.map((segment) => (
+            <div key={segment.key} className="year-segment"
+              style={{left:segment.start*dayWidth,width:segment.days*dayWidth}}>
+              {segment.label}
+            </div>
+          ))}
+        </div>
         <div className="calendar-month-row">
           {monthSegments.map((segment) => (
             <div
@@ -303,9 +321,16 @@ export function GanttChart({
         style={{
           width: chartWidth,
           minWidth: chartWidth,
-          backgroundSize: `${gridStep}px 100%`,
         }}
       >
+        {weekSegments.slice(1).map((segment) => (
+          <div key={segment.key} className="gantt-week-divider"
+            style={{ left: segment.start * dayWidth, height: visibleTasks.length * ROW_HEIGHT }} />
+        ))}
+        {monthSegments.slice(1).map((segment) => (
+          <div key={segment.key} className="gantt-month-divider"
+            style={{ left: segment.start * dayWidth, height: visibleTasks.length * ROW_HEIGHT }} />
+        ))}
         {showWeekends &&
           days.filter((day) => !day.workday).map((day) => (
             <div
