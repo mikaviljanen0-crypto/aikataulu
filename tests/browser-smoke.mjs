@@ -99,6 +99,35 @@ try {
   }
   console.log("PASS: Locked toolbar, sticky table header and bidirectional synchronized scrolling.");
 
+  // Apurivi tulee oikeaan näkyvän rivin indeksiin taulukossa, Ganttissa ja A3:ssa.
+  const guideRows = await page.evaluate(() => {
+    const table = Array.from(document.querySelectorAll(".schedule-table tbody tr"));
+    const gantt = Array.from(document.querySelectorAll(".gantt-row"));
+    const printed = Array.from(document.querySelectorAll(".report-sheet"));
+    return {
+      tableCount: table.length,
+      ganttCount: gantt.length,
+      tableGuides: table.flatMap((el, i) => el.classList.contains("guide-row") ? [i + 1] : []),
+      ganttGuides: gantt.flatMap((el, i) => el.classList.contains("guide-row") ? [i + 1] : []),
+      printMatch: printed.every(sheet => {
+        const left = Array.from(sheet.querySelectorAll(".report-table-row"));
+        const right = Array.from(sheet.querySelectorAll(".report-chart-row"));
+        return left.length === right.length && left.every((row, i) =>
+          row.classList.contains("guide-row") === ((i + 1) % 5 === 0) &&
+          right[i].classList.contains("guide-row") === ((i + 1) % 5 === 0));
+      }),
+    };
+  });
+  const expectedGuides = Array.from({length:guideRows.tableCount}, (_, i) => i+1).filter(x=>x%5===0);
+  if (guideRows.tableCount !== guideRows.ganttCount ||
+      JSON.stringify(guideRows.tableGuides) !== JSON.stringify(expectedGuides) ||
+      JSON.stringify(guideRows.ganttGuides) !== JSON.stringify(expectedGuides) ||
+      !guideRows.printMatch) {
+    throw new Error("Every-fifth-row guidelines are misaligned: " + JSON.stringify(guideRows));
+  }
+  console.log("PASS: Fifth-row guide alignment in table, Gantt and printed report.");
+
+
   // Hierarkiavärit näkyvät sekä työskentelynäkymässä että A3-tulostuksessa.
   const level0 = page.locator(".gantt-pane .task-bar.level-0").first();
   const level1 = page.locator(".gantt-pane .task-bar.level-1").first();
