@@ -15,7 +15,8 @@ let serverOutput = "";
 server.stdout.on("data", (part) => { serverOutput += part.toString(); });
 server.stderr.on("data", (part) => { serverOutput += part.toString(); });
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage();
+const context = await browser.newContext({ timezoneId: "Europe/Helsinki" });
+const page = await context.newPage();
 const messages = [];
 page.on("pageerror", (e) => messages.push("PAGE ERROR: " + e.message));
 page.on("console", (m) => {
@@ -35,6 +36,7 @@ try {
     waitUntil: "domcontentloaded",
     timeout: 30000,
   });
+  console.log("Browser timezone:", await page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone));
   console.log("Page title:", await page.title());
   console.log("Document readyState:", await page.evaluate(() => document.readyState));
   await page.getByRole("button", {name:"Projektit", exact:true}).first().click({timeout:20000});
