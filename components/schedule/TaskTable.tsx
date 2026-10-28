@@ -1,3 +1,4 @@
+import { syncScheduleVerticalScroll } from "@/lib/scrollSync";
 import { workdayEnd } from "@/lib/calendar";
 import { getWbs } from "@/lib/wbs";
 import type { Task } from "@/types/schedule";
@@ -63,6 +64,7 @@ export function TaskTable({
     <div
       className="task-pane"
       style={{ "--task-name-width": `${taskNameWidth}px` } as React.CSSProperties}
+      onScroll={(event) => syncScheduleVerticalScroll(event.currentTarget, ".gantt-pane")}
     >
       <table className="schedule-table">
         <thead>
