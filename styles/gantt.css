@@ -145,3 +145,31 @@
 .gantt-pane.fit-to-window { overflow-x: hidden; }
 .gantt-pane.fit-to-window .calendar-header,
 .gantt-pane.fit-to-window .gantt-body { min-width: 100%; }
+
+
+/* Snedo 1.3 – vaihdettavat hierarkiavärit koskevat vain suunnitelmajanoja.
+   Tavoite, toteuma, nykyhetki ja tilanneviiva säilyttävät omat värinsä. */
+.gantt-pane.hierarchy-colors .task-bar.level-0 {
+  background: var(--hierarchy-color-0);
+  border-color: #173b59;
+  color: white;
+}
+.gantt-pane.hierarchy-colors .task-bar.level-1 {
+  background: var(--hierarchy-color-1);
+  border-color: #167a82;
+  color: #173b43;
+}
+.gantt-pane.hierarchy-colors .task-bar.level-2 {
+  background: var(--hierarchy-color-2);
+  border-color: #438d91;
+  color: #214b50;
+}
+.gantt-pane.hierarchy-colors .task-bar.level-3 {
+  background: var(--hierarchy-color-3);
+  border-color: #669da0;
+  color: #214b50;
+}
+.gantt-pane.hierarchy-colors .summary-bar::before,
+.gantt-pane.hierarchy-colors .summary-bar::after {
+  background: currentColor;
+}
