@@ -323,3 +323,6 @@
 .print-report-footer {
   display: none;
 }
+
+/* 1.4.1: taulukon viides näkyvä rivi samalla tasolla kuin Ganttin apuviiva. */
+.schedule-table tbody tr.guide-row > td { border-bottom-color: #d6e0ea; }
