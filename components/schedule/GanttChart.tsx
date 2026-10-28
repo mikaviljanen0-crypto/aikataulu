@@ -39,6 +39,7 @@ type Props = {
   showToday: boolean;
   statusDate: string;
   showBaseline: boolean;
+  showHierarchyColors: boolean;
   showTrackingLine: boolean;
   extraDaysOff: string[];
   onUpdate: (id: number, patch: Partial<Task>) => void;
@@ -69,6 +70,7 @@ export function GanttChart({
   showToday,
   statusDate,
   showBaseline,
+  showHierarchyColors,
   showTrackingLine,
   extraDaysOff,
   onUpdate,
@@ -259,7 +261,7 @@ export function GanttChart({
   return (
     <div
       ref={ganttRef}
-      className={`gantt-pane ${fitToWindow ? "fit-to-window" : ""}`}
+      className={`gantt-pane ${fitToWindow ? "fit-to-window" : ""} ${showHierarchyColors ? "hierarchy-colors" : ""}`}
       onScroll={(event) => syncScheduleVerticalScroll(event.currentTarget, ".task-pane")}
     >
       <div className="calendar-header" style={{ width: chartWidth }}>
