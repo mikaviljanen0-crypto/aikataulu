@@ -187,3 +187,12 @@
 
 /* Vain joka viidennen näkyvän työvaiheen jälkeen kevyt apuviiva. */
 .gantt-row.guide-row { box-shadow: inset 0 -1px #d6e0ea; }
+
+/* 1.4.2: kalenterin otsikko ja Gantt käyttävät samoja ALKURAJOJA.
+   Vanha otsikon border-right päättyi 1 px ennen ruudukon border-leftiä. */
+.calendar-header .year-segment,
+.calendar-header .month-segment,
+.calendar-header .week-segment { border-right: 0; }
+.calendar-header .year-segment:not(:first-child) { border-left: 1px solid #9eb5c8; }
+.calendar-header .month-segment:not(:first-child) { border-left: 1px solid #9eb5c8; }
+.calendar-header .week-segment:not(:first-child) { border-left: 1px dashed #d4e0eb; }
