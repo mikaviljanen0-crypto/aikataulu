@@ -9,6 +9,7 @@ type Props = {
   showWeekends: boolean;
   showToday: boolean;
   showBaseline: boolean;
+  showHierarchyColors: boolean;
   onClose: () => void;
   onRangeStartChange: (value: string) => void;
   onRangeEndChange: (value: string) => void;
@@ -19,6 +20,7 @@ type Props = {
   onShowWeekendsChange: (value: boolean) => void;
   onShowTodayChange: (value: boolean) => void;
   onShowBaselineChange: (value: boolean) => void;
+  onShowHierarchyColorsChange: (value: boolean) => void;
 };
 
 export function ViewPanel(props: Props) {
@@ -74,7 +76,11 @@ export function ViewPanel(props: Props) {
           </label>
           <label className="view-panel-check">
             <input type="checkbox" checked={props.showBaseline} onChange={(e) => props.onShowBaselineChange(e.target.checked)} />
-            <span><strong>Näytä tavoite</strong><small>Tallennettu tavoite näkyy matalana harmaana janana.</small></span>
+            <span><strong>Näytä tavoite</strong><small>Tallennettu tavoite näkyy erillisenä tavoitejanana.</small></span>
+          </label>
+          <label className="view-panel-check">
+            <input type="checkbox" checked={props.showHierarchyColors} onChange={(e) => props.onShowHierarchyColorsChange(e.target.checked)} />
+            <span><strong>Hierarkiatasojen värit</strong><small>Päätyövaiheet tummansinisellä, alatyövaiheet turkoosilla ja tarkemmat työvaiheet vaaleammalla. Näkyy myös PDF:ssä.</small></span>
           </label>
         </section>
       </aside>
