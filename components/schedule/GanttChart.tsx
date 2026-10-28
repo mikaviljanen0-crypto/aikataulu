@@ -49,6 +49,13 @@ type Props = {
 
 type DragMode = "move" | "resize-start" | "resize-end";
 
+function isoWeekYear(date: Date): number {
+  const value = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = value.getUTCDay() || 7;
+  value.setUTCDate(value.getUTCDate() + 4 - day);
+  return value.getUTCFullYear();
+}
+
 function isoWeekNumber(date: Date): number {
   const value = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const day = value.getUTCDay() || 7;
@@ -110,7 +117,7 @@ export function GanttChart({
       yearLabel: `${date.getFullYear()}`,
       monthKey: `${date.getFullYear()}-${date.getMonth()}`,
       monthLabel: date.toLocaleDateString("fi-FI", { month: "long" }),
-      weekKey: `${date.getFullYear()}-${isoWeekNumber(date)}`,
+      weekKey: `${isoWeekYear(date)}-${isoWeekNumber(date)}`,
       weekLabel: `Vko ${isoWeekNumber(date)}`,
       weekend: date.getDay() === 0 || date.getDay() === 6,
       workday: isWorkday(value, extraDaysOff),
