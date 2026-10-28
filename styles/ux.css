@@ -283,3 +283,28 @@
   .meeting-late-row { grid-template-columns: 24px 1fr; }
   .meeting-late-row small { grid-column: 2; }
 }
+
+
+/* Janan väri helposti valittavissa neljälle hierarkiatasolle. */
+.hierarchy-palette-controls {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 0 24px;
+}
+.hierarchy-color-field {
+  display: grid !important;
+  grid-template-columns: 1fr 40px;
+  gap: 10px;
+  align-items: center;
+  color: #45586c;
+  font-size: 10px;
+}
+.hierarchy-color-field input[type="color"] {
+  width: 40px;
+  height: 27px;
+  padding: 2px;
+  border: 1px solid #d1dce5;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
