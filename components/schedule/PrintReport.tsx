@@ -1,4 +1,5 @@
 import { addDays, daysBetween } from "@/lib/date";
+import type { HierarchyPalette } from "@/lib/hierarchyColors";
 import { addWorkdays, workdayEnd } from "@/lib/calendar";
 import { getWbs } from "@/lib/wbs";
 import { isBehind } from "@/lib/progress";
@@ -13,6 +14,7 @@ type Props = {
   statusDate: string;
   showBaseline: boolean;
   showHierarchyColors: boolean;
+  hierarchyPalette: HierarchyPalette;
   showTracking: boolean;
   extraDaysOff: string[];
 };
@@ -123,7 +125,13 @@ export function PrintReport(props: Props) {
           <div
             className={`report-sheet ${props.showTracking ? "tracking-mode" : "planning-mode"} ${props.showHierarchyColors ? "hierarchy-colors" : ""}`}
             key={pageIndex}
-            style={{ "--report-row-height": `${rowHeight}mm` } as React.CSSProperties}
+            style={{
+              "--report-row-height": `${rowHeight}mm`,
+              "--hierarchy-color-0": props.hierarchyPalette[0],
+              "--hierarchy-color-1": props.hierarchyPalette[1],
+              "--hierarchy-color-2": props.hierarchyPalette[2],
+              "--hierarchy-color-3": props.hierarchyPalette[3],
+            } as React.CSSProperties}
           >
             <header className="report-head">
               <div className="report-logo"><span>S</span><strong>SNEDO</strong></div>
