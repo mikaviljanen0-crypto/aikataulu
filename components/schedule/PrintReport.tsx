@@ -38,10 +38,15 @@ function segments(start: string, count: number, unit: "month" | "week") {
     const value = addDays(start, index);
     const date = new Date(`${value}T12:00:00Z`);
     const week = isoWeek(value);
-    const key = unit === "month" ? `${date.getUTCFullYear()}-${date.getUTCMonth()}` : `${date.getUTCFullYear()}-${week}`;
+    const isoWeekYearDate = new Date(date);
+    const weekday = isoWeekYearDate.getUTCDay() || 7;
+    isoWeekYearDate.setUTCDate(isoWeekYearDate.getUTCDate() + 4 - weekday);
+    const key = unit === "month"
+      ? `${date.getUTCFullYear()}-${date.getUTCMonth()}`
+      : `${isoWeekYearDate.getUTCFullYear()}-${week}`;
     const label = unit === "month"
-      ? date.toLocaleDateString("fi-FI", { month: "long", year: "numeric", timeZone: "UTC" })
-      : `vko ${week}`;
+      ? date.toLocaleDateString("fi-FI", { month: "short", year: "numeric", timeZone: "UTC" })
+      : String(week);
     const previous = out.at(-1);
     if (previous && previous.key === key) previous.count += 1;
     else out.push({ key, label, first: index, count: 1 });
@@ -81,6 +86,9 @@ export function PrintReport(props: Props) {
   const total = Math.max(1, daysBetween(start, end) + 1);
   const monthSegments = segments(start, total, "month");
   const weekSegments = segments(start, total, "week");
+  // A3-vaakasuunnassa 45–55 viikon numerot mahtuvat vielä omiin ruutuihinsa.
+  // Erittäin pitkissä aikatauluissa harvennetaan tekstiä, ei jakoviivoja.
+  const weekLabelStep = Math.max(1, Math.ceil(weekSegments.length / 55));
   const pages: Task[][] = [];
   for (let index = 0; index < props.tasks.length; index += MAX_ROWS) {
     pages.push(props.tasks.slice(index, index + MAX_ROWS));
@@ -106,7 +114,11 @@ export function PrintReport(props: Props) {
           : "";
 
         return (
-          <div className="report-sheet" key={pageIndex} style={{ "--report-row-height": `${rowHeight}mm` } as React.CSSProperties}>
+          <div
+            className={`report-sheet ${props.showTracking ? "tracking-mode" : "planning-mode"}`}
+            key={pageIndex}
+            style={{ "--report-row-height": `${rowHeight}mm` } as React.CSSProperties}
+          >
             <header className="report-head">
               <div className="report-logo"><span>S</span><strong>SNEDO</strong></div>
               <div className="report-title">
@@ -114,24 +126,25 @@ export function PrintReport(props: Props) {
                 <h1>{props.projectName}</h1>
                 <p>{props.projectNumber} · {props.scheduleName}</p>
               </div>
-              <div className="report-date"><small>SEURANTAPÄIVÄ</small><strong>{fiDate(props.statusDate)}</strong><span>{pageIndex + 1} / {pages.length}</span></div>
+              <div className="report-date"><small>{props.showTracking ? "SEURANTAPÄIVÄ" : "PÄIVÄYS"}</small><strong>{fiDate(props.statusDate)}</strong><span>{pageIndex + 1} / {pages.length}</span></div>
             </header>
 
             <div className="report-legend">
               <span><i className="plan" /> Suunnitelma</span>
               {props.showBaseline && <span><i className="target" /> Tavoite</span>}
               {props.showTracking && <><span><i className="actual" /> Toteuma</span><span><i className="tracking" /> Tilanneviiva</span></>}
-              <span><i className="today" /> Nykyhetki</span>
+              {props.showTracking && <span><i className="today" /> Nykyhetki</span>}
             </div>
 
             <div className="report-table-grid">
               <div className="report-left">
                 <div className="report-column-head">
-                  <span>WBS</span><span>Työvaihe</span><span>Kesto</span><span>Alku</span><span>Loppu</span><span>Valmis</span><span>Tot. %</span>
+                  <span>WBS</span><span>Työvaihe</span><span>Kesto</span><span>Alku</span><span>Loppu</span>
+                  {props.showTracking && <><span>Valmis</span><span>Tot. %</span></>}
                 </div>
                 {rows.map((task) => {
                   const originalIndex = props.fullTasks.findIndex((value) => value.id === task.id);
-                  const behind = isBehind(task, props.statusDate, props.extraDaysOff);
+                  const behind = props.showTracking && isBehind(task, props.statusDate, props.extraDaysOff);
                   return (
                     <div key={task.id} className={`report-table-row ${task.type === "summary" ? "summary" : ""} ${behind ? "late" : ""}`}>
                       <span>{originalIndex < 0 ? "" : getWbs(props.fullTasks, originalIndex)}</span>
@@ -139,8 +152,10 @@ export function PrintReport(props: Props) {
                       <span>{task.duration}</span>
                       <span>{fiDate(task.start)}</span>
                       <span>{fiDate(workdayEnd(task.start, task.duration, props.extraDaysOff))}</span>
-                      <span>{(task.progress ?? 0) >= 100 ? "Kyllä" : "Ei"}</span>
-                      <span>{Math.round(task.progress ?? 0)} %</span>
+                      {props.showTracking && <>
+                        <span>{(task.progress ?? 0) >= 100 ? "Kyllä" : "Ei"}</span>
+                        <span>{Math.round(task.progress ?? 0)} %</span>
+                      </>}
                     </div>
                   );
                 })}
@@ -148,15 +163,29 @@ export function PrintReport(props: Props) {
 
               <div className="report-right">
                 <div className="report-calendar">
-                  <div>{monthSegments.map((segment) => (
-                    <span key={segment.key} style={{ left: `${segment.first / total * 100}%`, width: `${segment.count / total * 100}%` }}>{segment.count / total > .09 ? segment.label : ""}</span>
+                  <div className="report-month-labels">{monthSegments.map((segment) => (
+                    <span key={segment.key} style={{ left: `${segment.first / total * 100}%`, width: `${segment.count / total * 100}%` }}>
+                      {segment.count / total > .033 ? segment.label : ""}
+                    </span>
                   ))}</div>
-                  <div>{weekSegments.map((segment) => (
-                    <span key={segment.key} style={{ left: `${segment.first / total * 100}%`, width: `${segment.count / total * 100}%` }}>{segment.count / total > .035 ? segment.label : ""}</span>
+                  <div className="report-week-labels">{weekSegments.map((segment, index) => (
+                    <span
+                      key={segment.key}
+                      className="report-week-number"
+                      title={`Viikko ${segment.label}`}
+                      style={{ left: `${segment.first / total * 100}%`, width: `${segment.count / total * 100}%` }}
+                    >
+                      {index % weekLabelStep === 0 && segment.count / total > .011 ? segment.label : ""}
+                    </span>
                   ))}</div>
                 </div>
                 <div className="report-chart-body" style={{ height: `calc(var(--report-row-height) * ${rows.length})` }}>
-                  {weekSegments.map((segment) => <div key={segment.key} className="report-week-gridline" style={{ left: `${segment.first / total * 100}%` }} />)}
+                  {weekSegments.map((segment) => (
+                    <div key={segment.key} className="report-week-gridline" style={{ left: `${segment.first / total * 100}%` }} />
+                  ))}
+                  {monthSegments.slice(1).map((segment) => (
+                    <div key={segment.key} className="report-month-gridline" style={{ left: `${segment.first / total * 100}%` }} />
+                  ))}
                   {rows.map((task, i) => {
                     const lastDay = workdayEnd(task.start, task.duration, props.extraDaysOff);
                     const baselineEnd = task.baselineStart && task.baselineDuration
@@ -172,7 +201,7 @@ export function PrintReport(props: Props) {
                       </div>
                     );
                   })}
-                  {nowVisible && <div className="report-today-line" style={{ left: `${xPercent(today, start, total)}%` }} />}
+                  {props.showTracking && nowVisible && <div className="report-today-line" style={{ left: `${xPercent(today, start, total)}%` }} />}
                   {props.showTracking && line && (
                     <svg className="report-tracking" preserveAspectRatio="none" viewBox={`0 0 1000 ${rows.length * 28}`} aria-hidden="true">
                       <path d={line} />
