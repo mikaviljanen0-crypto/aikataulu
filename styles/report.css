@@ -251,6 +251,66 @@
     z-index: 1;
   }
 
+
+  /* Sopimusyleisaikataulu: jätetään toteumasarakkeet pois ja vapautetaan
+     tilaa varsinaisille työvaiheille sekä viikkoruudukolle. */
+  .report-sheet.planning-mode .report-column-head,
+  .report-sheet.planning-mode .report-table-row {
+    grid-template-columns: 11mm minmax(0, 1fr) 11mm 20mm 20mm;
+  }
+  .report-sheet.planning-mode .report-table-grid {
+    grid-template-columns: 37% 63%;
+  }
+
+  /* Tarkka viikkoruudukko: aina viikkonumero, ohuet viikkorajat
+     ja hieman vahvempi kuukausiraja. */
+  .report-calendar {
+    background: #f7f9fc;
+    border-bottom: .24mm solid #afbdca;
+  }
+  .report-calendar .report-month-labels {
+    background: #f0f4f9;
+  }
+  .report-calendar .report-week-labels {
+    background: #fafcff;
+  }
+  .report-calendar .report-month-labels > span {
+    font-size: 6.9pt;
+    font-weight: 720;
+    color: #344f68;
+    border-right: .3mm solid #b5c5d4;
+  }
+  .report-calendar .report-week-labels > span {
+    font-size: 6.5pt;
+    font-weight: 630;
+    color: #40566b;
+    border-right: .09mm solid #dce5ed;
+  }
+  .report-week-gridline {
+    width: .12mm;
+    background: #e3eaf0;
+  }
+  .report-month-gridline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: .3mm;
+    background: #b8c9d7;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .report-plan-bar {
+    top: calc(var(--report-row-height) * .34);
+    height: calc(var(--report-row-height) * .34);
+    min-height: 1.7mm;
+    max-height: 3.2mm;
+    border: .12mm solid #167e80;
+    border-radius: .35mm;
+  }
+  .report-chart-row.summary .report-plan-bar {
+    border-width: .16mm;
+  }
+
   .report-chart-row {
     position: absolute;
     left: 0;
