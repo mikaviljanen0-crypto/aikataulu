@@ -436,3 +436,15 @@
   .report-table-row.guide-row,
   .report-chart-row.guide-row { box-shadow: inset 0 -.13mm #dce5ed; }
 }
+
+/* 1.4.2: kolmen kalenteririvin 12 mm korkeus myös vasemman
+   työvaihetaulukon otsikkoon. Näin molemmat rivisarjat alkavat samalta
+   vaakalinjalta sekä näytössä että tulostetussa PDF:ssä. */
+@media print {
+  .report-column-head { height: 12mm; }
+  .report-table-row.guide-row,
+  .report-chart-row.guide-row {
+    box-shadow: none;
+    border-bottom: .16mm solid #cbd8e3;
+  }
+}
