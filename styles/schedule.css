@@ -146,7 +146,7 @@
   table-layout: fixed;
 }
 
-.schedule-table thead tr { height: 52px; }
+.schedule-table thead tr { height: 60px; }
 .schedule-table tbody tr { height: 28px; max-height: 28px; }
 
 .schedule-table th,
@@ -163,8 +163,8 @@
 }
 
 .schedule-table th {
-  height: 52px;
-  max-height: 52px;
+  height: 60px;
+  max-height: 60px;
   background: #edf2f7;
   color: #34465a;
   font-size: 10px;
