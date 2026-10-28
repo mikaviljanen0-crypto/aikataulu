@@ -158,11 +158,11 @@ export function PrintReport(props: Props) {
                   <span>WBS</span><span>Työvaihe</span><span>Kesto</span><span>Alku</span><span>Loppu</span>
                   {props.showTracking && <><span>Valmis</span><span>Tot. %</span></>}
                 </div>
-                {rows.map((task) => {
+                {rows.map((task, visibleIndex) => {
                   const originalIndex = props.fullTasks.findIndex((value) => value.id === task.id);
                   const behind = props.showTracking && isBehind(task, props.statusDate, props.extraDaysOff);
                   return (
-                    <div key={task.id} className={`report-table-row ${task.type === "summary" ? "summary" : ""} ${behind ? "late" : ""}`}>
+                    <div key={task.id} className={`report-table-row ${task.type === "summary" ? "summary" : ""} ${behind ? "late" : ""} ${(visibleIndex + 1) % 5 === 0 ? "guide-row" : ""}`}>
                       <span>{originalIndex < 0 ? "" : getWbs(props.fullTasks, originalIndex)}</span>
                       <strong style={{ paddingLeft: `${Math.min(18, task.level * 5)}px` }}>{task.name}</strong>
                       <span>{task.duration}</span>
@@ -214,7 +214,7 @@ export function PrintReport(props: Props) {
                     const current = barStyle(task.start, lastDay, start, total);
                     const progress = Math.max(0, Math.min(100, task.progress ?? 0));
                     return (
-                      <div key={task.id} className={`report-chart-row ${task.type === "summary" ? "summary" : ""}`} style={{ top: `calc(var(--report-row-height) * ${i})` }}>
+                      <div key={task.id} className={`report-chart-row ${task.type === "summary" ? "summary" : ""} ${(i + 1) % 5 === 0 ? "guide-row" : ""}`} style={{ top: `calc(var(--report-row-height) * ${i})` }}>
                         {props.showBaseline && task.baselineStart && baselineEnd && <div className="report-target-bar" style={barStyle(task.baselineStart, baselineEnd, start, total)} />}
                         <div className={`report-plan-bar level-${Math.min(task.level, 3)}`} style={current}>
                           {props.showTracking && <div className="report-actual-fill" style={{ width: `${progress}%` }} />}
