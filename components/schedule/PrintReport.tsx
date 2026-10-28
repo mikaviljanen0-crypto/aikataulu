@@ -12,6 +12,7 @@ type Props = {
   scheduleName: string;
   statusDate: string;
   showBaseline: boolean;
+  showHierarchyColors: boolean;
   showTracking: boolean;
   extraDaysOff: string[];
 };
@@ -120,7 +121,7 @@ export function PrintReport(props: Props) {
 
         return (
           <div
-            className={`report-sheet ${props.showTracking ? "tracking-mode" : "planning-mode"}`}
+            className={`report-sheet ${props.showTracking ? "tracking-mode" : "planning-mode"} ${props.showHierarchyColors ? "hierarchy-colors" : ""}`}
             key={pageIndex}
             style={{ "--report-row-height": `${rowHeight}mm` } as React.CSSProperties}
           >
@@ -135,7 +136,7 @@ export function PrintReport(props: Props) {
             </header>
 
             <div className="report-legend">
-              <span><i className="plan" /> Suunnitelma</span>
+              <span><i className="plan" /> {props.showHierarchyColors ? "Suunnitelma (hierarkiavärit)" : "Suunnitelma"}</span>
               {props.showBaseline && <span><i className="target" /> Tavoite</span>}
               {props.showTracking && <><span><i className="actual" /> Toteuma</span><span><i className="tracking" /> Tilanneviiva</span></>}
               {props.showTracking && <span><i className="today" /> Nykyhetki</span>}
@@ -200,7 +201,7 @@ export function PrintReport(props: Props) {
                     return (
                       <div key={task.id} className={`report-chart-row ${task.type === "summary" ? "summary" : ""}`} style={{ top: `calc(var(--report-row-height) * ${i})` }}>
                         {props.showBaseline && task.baselineStart && baselineEnd && <div className="report-target-bar" style={barStyle(task.baselineStart, baselineEnd, start, total)} />}
-                        <div className="report-plan-bar" style={current}>
+                        <div className={`report-plan-bar level-${Math.min(task.level, 3)}`} style={current}>
                           {props.showTracking && <div className="report-actual-fill" style={{ width: `${progress}%` }} />}
                         </div>
                       </div>
