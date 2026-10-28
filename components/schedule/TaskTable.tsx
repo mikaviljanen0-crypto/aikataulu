@@ -104,7 +104,7 @@ export function TaskTable({
         </thead>
 
         <tbody>
-          {visibleTasks.map((task) => {
+          {visibleTasks.map((task, visibleIndex) => {
             const originalIndex = tasks.findIndex((item) => item.id === task.id);
             const end = workdayEnd(task.start, task.duration, extraDaysOff);
             const complete = (task.progress ?? 0) >= 100;
@@ -117,6 +117,7 @@ export function TaskTable({
                   task.type === "summary" ? "summary-row" : "",
                   criticalTaskIds.has(task.id) ? "critical-row" : "",
                   behindIds.has(task.id) ? "behind-row" : "",
+                  (visibleIndex + 1) % 5 === 0 ? "guide-row" : "",
                 ].join(" ")}
                 onClick={(event) =>
                   onSelect(task.id, {
