@@ -95,6 +95,7 @@ export default function ScheduleApp() {
   const [showWeekends, setShowWeekends] = useState(true);
   const [showToday, setShowToday] = useState(true);
   const [showBaseline, setShowBaseline] = useState(true);
+  const [showHierarchyColors, setShowHierarchyColors] = useState(true);
   const [activeNav, setActiveNav] = useState("general");
   const [taskQuery, setTaskQuery] = useState("");
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("all");
@@ -185,6 +186,7 @@ export default function ScheduleApp() {
         setShowWeekends(view.showWeekends ?? true);
         setShowToday(view.showToday ?? true);
         setShowBaseline(view.showBaseline ?? true);
+        setShowHierarchyColors(view.showHierarchyColors ?? true);
         setTaskFilter(view.taskFilter ?? "all");
       } catch {
         // Näkymä palautuu oletukseen.
@@ -317,6 +319,7 @@ export default function ScheduleApp() {
         showWeekends,
         showToday,
         showBaseline,
+        showHierarchyColors,
         taskFilter,
       }),
     );
@@ -333,6 +336,7 @@ export default function ScheduleApp() {
     showWeekends,
     showToday,
     showBaseline,
+    showHierarchyColors,
     taskFilter,
   ]);
 
@@ -1008,6 +1012,7 @@ export default function ScheduleApp() {
           scheduleName={scheduleName}
           statusDate={statusDate}
           showBaseline={showBaseline}
+          showHierarchyColors={showHierarchyColors}
           showTracking={showTrackingColumns}
           extraDaysOff={extraDaysOff}
         />
@@ -1057,6 +1062,7 @@ export default function ScheduleApp() {
             showToday={showToday}
             statusDate={statusDate}
             showBaseline={showBaseline}
+            showHierarchyColors={showHierarchyColors}
             showTrackingLine={showTrackingColumns}
             extraDaysOff={extraDaysOff}
             onUpdate={updateTask}
@@ -1072,6 +1078,7 @@ export default function ScheduleApp() {
           showWeekends={showWeekends}
           showToday={showToday}
           showBaseline={showBaseline}
+          showHierarchyColors={showHierarchyColors}
           onClose={() => setViewPanelOpen(false)}
           onRangeStartChange={setRangeStart}
           onRangeEndChange={setRangeEnd}
@@ -1082,6 +1089,7 @@ export default function ScheduleApp() {
           onShowWeekendsChange={setShowWeekends}
           onShowTodayChange={setShowToday}
           onShowBaselineChange={setShowBaseline}
+          onShowHierarchyColorsChange={setShowHierarchyColors}
         />
 
         <ProjectsPanel
