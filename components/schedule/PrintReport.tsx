@@ -35,7 +35,7 @@ function isoWeek(value: string): number {
   return Math.ceil(((date.getTime() - first.getTime()) / 86400000 + 1) / 7);
 }
 
-function segments(start: string, count: number, unit: "month" | "week") {
+function segments(start: string, count: number, unit: "year" | "month" | "week") {
   const out: { key: string; label: string; first: number; count: number }[] = [];
   for (let index = 0; index < count; index += 1) {
     const value = addDays(start, index);
@@ -44,12 +44,13 @@ function segments(start: string, count: number, unit: "month" | "week") {
     const isoWeekYearDate = new Date(date);
     const weekday = isoWeekYearDate.getUTCDay() || 7;
     isoWeekYearDate.setUTCDate(isoWeekYearDate.getUTCDate() + 4 - weekday);
-    const key = unit === "month"
-      ? `${date.getUTCFullYear()}-${date.getUTCMonth()}`
+    const key = unit === "year" ? String(date.getUTCFullYear())
+      : unit === "month" ? `${date.getUTCFullYear()}-${date.getUTCMonth()}`
       : `${isoWeekYearDate.getUTCFullYear()}-${week}`;
-    const label = unit === "month"
-      ? date.toLocaleDateString("fi-FI", { month: "short", year: "numeric", timeZone: "UTC" })
-      : String(week);
+    const label = unit === "year" ? String(date.getUTCFullYear())
+      : unit === "month"
+        ? date.toLocaleDateString("fi-FI", { month: "short", timeZone: "UTC" })
+        : String(week);
     const previous = out.at(-1);
     if (previous && previous.key === key) previous.count += 1;
     else out.push({ key, label, first: index, count: 1 });
@@ -93,6 +94,7 @@ export function PrintReport(props: Props) {
   const start = addDays(firstMarginDay, 1 - startWeekday);
   const end = addDays(lastMarginDay, 7 - endWeekday);
   const total = Math.max(1, daysBetween(start, end) + 1);
+  const yearSegments = segments(start, total, "year");
   const monthSegments = segments(start, total, "month");
   const weekSegments = segments(start, total, "week");
   // A3-pituisessa sopimusyleisaikataulussa jokainen viikko näkyy numerona.
@@ -177,6 +179,11 @@ export function PrintReport(props: Props) {
 
               <div className="report-right">
                 <div className="report-calendar">
+                  <div className="report-year-labels">{yearSegments.map((segment) => (
+                    <span key={segment.key} style={{ left: `${segment.first / total * 100}%`, width: `${segment.count / total * 100}%` }}>
+                      {segment.label}
+                    </span>
+                  ))}</div>
                   <div className="report-month-labels">{monthSegments.map((segment) => (
                     <span key={segment.key} style={{ left: `${segment.first / total * 100}%`, width: `${segment.count / total * 100}%` }}>
                       {segment.count / total > .033 ? segment.label : ""}
