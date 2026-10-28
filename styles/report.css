@@ -448,3 +448,20 @@
     border-bottom: .16mm solid #cbd8e3;
   }
 }
+
+/* 1.4.2: myös A3:n otsikon segmenttirajat piirretään samasta
+   segmentin alusta kuin Ganttin pystyviivat (ei edellisen lopusta). */
+@media print {
+  .report-calendar .report-year-labels > span,
+  .report-calendar .report-month-labels > span,
+  .report-calendar .report-week-labels > span {
+    border-right: 0;
+  }
+  .report-calendar .report-year-labels > span:not(:first-child),
+  .report-calendar .report-month-labels > span:not(:first-child) {
+    border-left: .26mm solid #a9bfd0;
+  }
+  .report-calendar .report-week-labels > span:not(:first-child) {
+    border-left: .12mm dashed #cfdae5;
+  }
+}
