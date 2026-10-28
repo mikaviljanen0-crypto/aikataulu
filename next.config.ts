@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Älä anna Turbopackin valita koko Downloads-kansiota sovelluksen juureksi.
-  // VS Coden terminaali käynnistää ohjelman Snedo_Aikataulu_1_0-kansiosta.
+  // Paikallisen kehityksen projektijuuri. Eristää sovelluksen muista kansioista.
   turbopack: {
     root: process.cwd(),
   },
+  // GitHub voi tuottaa valmiin selaimessa toimivan paketin ilman
+  // käyttäjän koneella suoritettavaa Next.js-käännöstä.
+  ...(process.env.SNEDO_STATIC_EXPORT === "1" ? { output: "export" as const } : {}),
 };
 
 export default nextConfig;
