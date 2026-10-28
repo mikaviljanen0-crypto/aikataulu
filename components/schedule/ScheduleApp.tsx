@@ -936,6 +936,7 @@ export default function ScheduleApp() {
       <Sidebar active={activeNav} onNavigate={navigate} />
 
       <section className="workspace">
+        <div className="workspace-locked-header">
         <TopBar
           modeLabel={activeNav === "week" ? "VIIKKONÄKYMÄ" : activeNav === "tracking" ? "TOTEUMASEURANTA" : "YLEISAIKATAULU"}
           onAddTask={addTask}
@@ -988,6 +989,8 @@ export default function ScheduleApp() {
           onHistory={() => setHistoryOpen(true)}
           onPrint={() => window.print()}
         />
+
+        </div>
 
         <PrintHeader
           projectNumber={projectNumber}
