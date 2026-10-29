@@ -4,6 +4,7 @@ import { addWorkdays, workdayEnd } from "@/lib/calendar";
 import { getWbs } from "@/lib/wbs";
 import { isBehind } from "@/lib/progress";
 import type { Task } from "@/types/schedule";
+import type { ScheduleMilestone } from "@/types/workspace";
 
 type Props = {
   tasks: Task[];
@@ -17,6 +18,7 @@ type Props = {
   hierarchyPalette: HierarchyPalette;
   showTracking: boolean;
   extraDaysOff: string[];
+  milestones: ScheduleMilestone[];
 };
 
 const MAX_ROWS = 38;
@@ -83,8 +85,9 @@ export function PrintReport(props: Props) {
   const leaves = props.fullTasks.filter((task) => task.type !== "summary");
   const starts = leaves.map((task) => task.start).sort();
   const ends = leaves.map((task) => workdayEnd(task.start, task.duration, props.extraDaysOff)).sort();
-  const first = starts[0] ?? props.statusDate;
-  const last = ends.at(-1) ?? props.statusDate;
+  const milestoneDates = props.milestones.filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date)).map(item => item.date);
+  const first = [...starts, ...milestoneDates, props.statusDate].sort()[0] ?? props.statusDate;
+  const last = [...ends, ...milestoneDates].sort().at(-1) ?? props.statusDate;
   // Lukitaan aikajanan ulkoreunat kokonaisiin kalenteriviikkoihin:
   // kaikki viikkonumerot saavat yhtä leveän seitsemän päivän sarakkeen.
   const firstMarginDay = addDays(first, -5);
@@ -97,6 +100,7 @@ export function PrintReport(props: Props) {
   const yearSegments = segments(start, total, "year");
   const monthSegments = segments(start, total, "month");
   const weekSegments = segments(start, total, "week");
+  const orderedMilestones = [...props.milestones].sort((a,b)=>a.date.localeCompare(b.date));
   // A3-pituisessa sopimusyleisaikataulussa jokainen viikko näkyy numerona.
   // Vain numerot, ei sanaa "vko" jokaisessa ahtaassa viikkosolussa.
   const pages: Task[][] = [];
@@ -136,7 +140,7 @@ export function PrintReport(props: Props) {
             } as React.CSSProperties}
           >
             <header className="report-head">
-              <div className="report-logo"><span>S</span><strong>SNEDO</strong></div>
+              <div className="report-logo"><span>S</span></div>
               <div className="report-title">
                 <small>{props.showTracking ? "TYÖMAAKOKOUS · AIKATAULUSEURANTA" : "TYÖMAAN YLEISAIKATAULU"}</small>
                 <h1>{props.projectName}</h1>
@@ -151,6 +155,13 @@ export function PrintReport(props: Props) {
               {props.showTracking && <><span><i className="actual" /> Toteuma</span><span><i className="tracking" /> Tilanneviiva</span></>}
               {props.showTracking && <span><i className="today" /> Nykyhetki</span>}
             </div>
+
+            {orderedMilestones.length > 0 && <div className="report-milestone-legend">
+              {orderedMilestones.map((item, index) => <span key={item.id}>
+                <b className="report-milestone-number">VT{index+1}</b>
+                {item.title} · {fiDate(item.date)}
+              </span>)}
+            </div>}
 
             <div className="report-table-grid">
               <div className="report-left">
@@ -201,6 +212,10 @@ export function PrintReport(props: Props) {
                   ))}</div>
                 </div>
                 <div className="report-chart-body" style={{ height: `calc(var(--report-row-height) * ${rows.length})` }}>
+                  {orderedMilestones.filter(item => item.date >= start && item.date <= end).map(item => (
+                    <div key={item.id} className="report-milestone-line"
+                      style={{ left: `${xPercent(item.date, start, total)}%` }} />
+                  ))}
                   {weekSegments.map((segment) => (
                     <div key={segment.key} className="report-week-gridline" style={{ left: `${segment.first / total * 100}%` }} />
                   ))}
