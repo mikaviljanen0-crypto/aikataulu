@@ -632,8 +632,8 @@ export default function ScheduleApp() {
   function fitProjectToView() {
     const normal = normalizedTasks.filter((task) => task.type !== "summary");
     if (!normal.length) return;
-    const start = minIsoDate(normal.map((task) => task.start));
-    const end = maxIsoDate(normal.map((task) => workdayEnd(task.start, task.duration, extraDaysOff)));
+    const start = minIsoDate([...normal.map((task) => task.start), ...milestones.map(m => m.date)]);
+    const end = maxIsoDate([...normal.map((task) => workdayEnd(task.start, task.duration, extraDaysOff)), ...milestones.map(m => m.date)]);
     setRangeStart(addDays(start, -7));
     setRangeEnd(addDays(end, 14));
   }
