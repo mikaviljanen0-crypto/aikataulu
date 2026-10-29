@@ -323,7 +323,7 @@
 @media (max-width: 480px) { .milestone-item { grid-template-columns: 35px 1fr; } .milestone-item label:nth-of-type(2), .milestone-item .milestone-delete { grid-column: 2; } }
 
 /* Välitavoitteet kalenterissa: ohut mutta selvästi tunnistettava violetti pystyviiva. */
-.gantt-milestone-line { position: absolute; top: 0; width: 0; border-left: 2px dashed #8755b0; z-index: 3; pointer-events: none; opacity: .85; }
+.gantt-milestone-line { position: absolute; top: 0; width: 0; border-left: 2px dashed #8755b0; z-index: 7; pointer-events: none; opacity: .85; }
 .gantt-milestone-badge { position: absolute; top: 1px; transform: translateX(-50%); min-width: 28px; max-width: 43px; padding: 2px 3px; border-radius: 3px; background: #7950a3; color: white; text-align: center; font-size: 9px; font-weight: 800; z-index: 12; pointer-events: none; white-space: nowrap; }
 .gantt-milestone-line:after { content: ""; position: absolute; top: 0; height: 100%; border-left: 0; }
 
