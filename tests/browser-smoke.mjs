@@ -278,10 +278,14 @@ try {
     throw new Error("Milestones are not visible as two vertical Gantt lines");
   }
   await page.emulateMedia({media:"print"});
-  if (await page.locator(".report-milestone-line").count() !== 2 ||
-      await page.locator(".report-milestone-legend > span").count() !== 2 ||
-      await page.locator(".report-logo strong").count() !== 0) {
-    throw new Error("Milestone A3 lines/legend or S-only logo are incorrect");
+  const pageCount = await page.locator(".report-sheet").count();
+  const milestoneLineCount = await page.locator(".report-milestone-line").count();
+  const milestoneLegendCount = await page.locator(".report-milestone-legend > span").count();
+  const oldLogoCount = await page.locator(".report-logo strong").count();
+  if (pageCount < 1 || milestoneLineCount !== pageCount * 2 ||
+      milestoneLegendCount !== pageCount * 2 || oldLogoCount !== 0) {
+    throw new Error("Milestone A3 lines/legend or S-only logo incorrect: "+
+      JSON.stringify({pageCount,milestoneLineCount,milestoneLegendCount,oldLogoCount}));
   }
   await page.emulateMedia({media:"screen"});
   const stored = await page.evaluate(() => {
