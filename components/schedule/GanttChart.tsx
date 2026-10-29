@@ -13,6 +13,7 @@ import {
 } from "@/lib/calendar";
 import { getWbs } from "@/lib/wbs";
 import type { Task } from "@/types/schedule";
+import type { ScheduleMilestone } from "@/types/workspace";
 import { useEffect, useRef, useState } from "react";
 import type { TimelineZoom } from "./TimelineControls";
 
@@ -44,6 +45,7 @@ type Props = {
   hierarchyPalette: HierarchyPalette;
   showTrackingLine: boolean;
   extraDaysOff: string[];
+  milestones: ScheduleMilestone[];
   onUpdate: (id: number, patch: Partial<Task>) => void;
 };
 
@@ -83,6 +85,7 @@ export function GanttChart({
   hierarchyPalette,
   showTrackingLine,
   extraDaysOff,
+  milestones,
   onUpdate,
 }: Props) {
   const ganttRef = useRef<HTMLDivElement>(null);
@@ -150,6 +153,10 @@ export function GanttChart({
       return segments;
     }, [],
   );
+
+  const visibleMilestones = [...milestones]
+    .filter(item => item.date >= rangeStart && item.date <= rangeEnd && /^\d{4}-\d{2}-\d{2}$/.test(item.date))
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const todayOffset = dateOffsetFrom(todayIso, rangeStart);
@@ -321,6 +328,14 @@ export function GanttChart({
             </div>
           ))}
         </div>
+        {visibleMilestones.map((milestone) => {
+          const rank = milestones.slice().sort((a,b)=>a.date.localeCompare(b.date)).findIndex(item=>item.id===milestone.id)+1;
+          return <span key={milestone.id} className="gantt-milestone-badge"
+            title={`VT${rank}: ${milestone.title} (${milestone.date})`}
+            style={{left:(dateOffsetFrom(milestone.date,rangeStart)+.5)*dayWidth}}>
+            VT{rank}
+          </span>;
+        })}
       </div>
 
       <div
@@ -330,6 +345,15 @@ export function GanttChart({
           minWidth: chartWidth,
         }}
       >
+        {visibleMilestones.map(milestone => <div
+          key={milestone.id}
+          className="gantt-milestone-line"
+          title={milestone.title}
+          style={{
+            left: (dateOffsetFrom(milestone.date, rangeStart) + .5) * dayWidth,
+            height: visibleTasks.length * ROW_HEIGHT,
+          }}
+        />)}
         {weekSegments.slice(1).map((segment) => (
           <div key={segment.key} className="gantt-week-divider"
             style={{ left: segment.start * dayWidth, height: visibleTasks.length * ROW_HEIGHT }} />

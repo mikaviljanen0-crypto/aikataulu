@@ -28,7 +28,8 @@ import { HistoryPanel } from "./HistoryPanel";
 import { CalendarPanel } from "./CalendarPanel";
 import { getProjectPulse, isBehind, expectedProgress } from "@/lib/progress";
 import { getWbs } from "@/lib/wbs";
-import type { ProjectListing, StoredProject, TrackingSnapshot } from "@/types/workspace";
+import type { ProjectListing, StoredProject, TrackingSnapshot, ScheduleMilestone } from "@/types/workspace";
+import { MilestonesPanel } from "./MilestonesPanel";
 
 const STORAGE_KEY = "snedo-aikataulu-project-v1";
 const VIEW_STORAGE_KEY = "snedo-aikataulu-view-v1";
@@ -108,6 +109,8 @@ export default function ScheduleApp() {
   const [snapshots, setSnapshots] = useState<TrackingSnapshot[]>([]);
   const [extraDaysOff, setExtraDaysOff] = useState<string[]>([]);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [milestonesOpen, setMilestonesOpen] = useState(false);
+  const [milestones, setMilestones] = useState<ScheduleMilestone[]>([]);
 
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -126,6 +129,7 @@ export default function ScheduleApp() {
           setStatusDate(parsed.statusDate ?? new Date().toISOString().slice(0, 10));
           setTasks(parsed.tasks);
           setExtraDaysOff(Array.isArray(parsed.extraDaysOff) ? parsed.extraDaysOff : []);
+          setMilestones(Array.isArray(parsed.milestones) ? parsed.milestones : []);
           setSelectedIds(new Set([parsed.tasks[0].id]));
           setSelectionAnchorId(parsed.tasks[0].id);
         }
@@ -151,6 +155,7 @@ export default function ScheduleApp() {
             setStatusDate(stored.statusDate || "2026-08-31");
             setTasks(stored.tasks);
             setExtraDaysOff(Array.isArray(stored.extraDaysOff) ? stored.extraDaysOff : []);
+            setMilestones(Array.isArray(stored.milestones) ? stored.milestones : []);
             setSnapshots(Array.isArray(stored.snapshots) ? stored.snapshots : []);
             setSelectedIds(new Set([stored.tasks[0].id]));
             setSelectionAnchorId(stored.tasks[0].id);
@@ -289,6 +294,7 @@ export default function ScheduleApp() {
       tasks,
       snapshots,
       extraDaysOff,
+      milestones,
     };
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -304,7 +310,7 @@ export default function ScheduleApp() {
     } catch {
       // Selaintallennuksen rajoitus ei saa estää työskentelyä. JSON-vienti on varmuuskopio.
     }
-  }, [loaded, activeProjectId, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff]);
+  }, [loaded, activeProjectId, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff, milestones]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -602,6 +608,23 @@ export default function ScheduleApp() {
     flash("Tavoite tallennettu.");
   }
 
+  function addMilestone(title: string, date: string) {
+    setMilestones(current => [...current, {
+      id: `vt-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+      title, date,
+    }]);
+    flash("Välitavoite lisätty.");
+  }
+
+  function updateMilestone(id: string, patch: Partial<Pick<ScheduleMilestone, "title" | "date">>) {
+    setMilestones(current => current.map(item => item.id === id ? {...item, ...patch} : item));
+  }
+
+  function removeMilestone(id: string) {
+    setMilestones(current => current.filter(item => item.id !== id));
+    flash("Välitavoite poistettu.");
+  }
+
   function showWeeks(weeks: number) {
     setRangeEnd(addDays(rangeStart, weeks * 7 - 1));
   }
@@ -609,8 +632,8 @@ export default function ScheduleApp() {
   function fitProjectToView() {
     const normal = normalizedTasks.filter((task) => task.type !== "summary");
     if (!normal.length) return;
-    const start = minIsoDate(normal.map((task) => task.start));
-    const end = maxIsoDate(normal.map((task) => workdayEnd(task.start, task.duration, extraDaysOff)));
+    const start = minIsoDate([...normal.map((task) => task.start), ...milestones.map(m => m.date)]);
+    const end = maxIsoDate([...normal.map((task) => workdayEnd(task.start, task.duration, extraDaysOff)), ...milestones.map(m => m.date)]);
     setRangeStart(addDays(start, -7));
     setRangeEnd(addDays(end, 14));
   }
@@ -655,6 +678,7 @@ export default function ScheduleApp() {
       tasks,
       snapshots,
       extraDaysOff,
+      milestones,
     };
     download(
       `${projectNumber}-${scheduleName.replaceAll(" ", "_")}.jana.json`,
@@ -676,6 +700,7 @@ export default function ScheduleApp() {
       setStatusDate(parsed.statusDate ?? statusDate);
       setSnapshots(Array.isArray(parsed.snapshots) ? parsed.snapshots : []);
       setExtraDaysOff(Array.isArray(parsed.extraDaysOff) ? parsed.extraDaysOff : []);
+      setMilestones(Array.isArray(parsed.milestones) ? parsed.milestones : []);
       setTasks(parsed.tasks);
       setSelectedIds(new Set([parsed.tasks[0].id]));
       setSelectionAnchorId(parsed.tasks[0].id);
@@ -752,7 +777,7 @@ export default function ScheduleApp() {
   }
 
   function currentPayload(): StoredProject {
-    return { version: 1, projectNumber, projectName, scheduleName, statusDate, tasks: cloneTasks(tasks), snapshots, extraDaysOff };
+    return { version: 1, projectNumber, projectName, scheduleName, statusDate, tasks: cloneTasks(tasks), snapshots, extraDaysOff, milestones };
   }
 
   function saveCurrentDirectly() {
@@ -791,6 +816,7 @@ export default function ScheduleApp() {
     }
     setSnapshots(Array.isArray(project.snapshots) ? project.snapshots : []);
     setExtraDaysOff(Array.isArray(project.extraDaysOff) ? project.extraDaysOff : []);
+    setMilestones(Array.isArray(project.milestones) ? project.milestones : []);
     setUndoStack([]);
     setRedoStack([]);
     setSelectedIds(new Set([project.tasks[0].id]));
@@ -831,6 +857,7 @@ export default function ScheduleApp() {
       tasks: [{ id: Date.now(), name: "Työvaihe", start: nextWorkday(start), duration: 5, level: 0, type: "task", progress: 0 }],
       snapshots: [],
       extraDaysOff: [],
+      milestones: [],
     };
     const entries: ProjectListing[] = [
       ...catalog,
@@ -900,7 +927,7 @@ export default function ScheduleApp() {
         exportJson();
         return;
       }
-      if (editing || projectsOpen || historyOpen || viewPanelOpen || calendarOpen) return;
+      if (editing || projectsOpen || historyOpen || viewPanelOpen || calendarOpen || milestonesOpen) return;
       if (control && key === "z" && event.shiftKey) { event.preventDefault(); redo(); }
       else if (control && key === "z") { event.preventDefault(); undo(); }
       else if (control && key === "y") { event.preventDefault(); redo(); }
@@ -914,7 +941,7 @@ export default function ScheduleApp() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [tasks, snapshots, selectedIds, undoStack, redoStack, projectsOpen, historyOpen, viewPanelOpen, calendarOpen]);
+  }, [tasks, snapshots, selectedIds, undoStack, redoStack, projectsOpen, historyOpen, viewPanelOpen, calendarOpen, milestonesOpen]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
   function navigate(key: string) {
@@ -965,6 +992,7 @@ export default function ScheduleApp() {
           onTogglePlanningColumns={() => setShowPlanningColumns((value) => !value)}
           onToggleTrackingColumns={() => setShowTrackingColumns((value) => !value)}
           onSaveBaseline={saveBaseline}
+          onOpenMilestones={() => setMilestonesOpen(true)}
           onOpenView={() => setViewPanelOpen(true)}
           onExportJson={exportJson}
           onImportJson={() => jsonInputRef.current?.click()}
@@ -1021,6 +1049,7 @@ export default function ScheduleApp() {
           hierarchyPalette={hierarchyPalette}
           showTracking={showTrackingColumns}
           extraDaysOff={extraDaysOff}
+          milestones={milestones}
         />
 
         <section
@@ -1072,6 +1101,7 @@ export default function ScheduleApp() {
             hierarchyPalette={hierarchyPalette}
             showTrackingLine={showTrackingColumns}
             extraDaysOff={extraDaysOff}
+            milestones={milestones}
             onUpdate={updateTask}
           />
         </section>
@@ -1127,6 +1157,15 @@ export default function ScheduleApp() {
           onRestore={restoreSnapshot}
         />
 
+        {milestonesOpen && <MilestonesPanel
+          milestones={milestones}
+          initialDate={statusDate}
+          onAdd={addMilestone}
+          onUpdate={updateMilestone}
+          onRemove={removeMilestone}
+          onClose={() => setMilestonesOpen(false)}
+        />}
+
         {calendarOpen && <CalendarPanel
           extraDaysOff={extraDaysOff}
           onAdd={(day) => {
@@ -1152,7 +1191,7 @@ export default function ScheduleApp() {
 
         <footer className="statusbar">
           <span>{projectNumber} · {projectName}</span>
-          <span>{selectedIds.size} valittu · {visibleTasks.length}/{normalizedTasks.length} riviä · Snedo Aikataulu 1.1 (testi)</span>
+          <span>{selectedIds.size} valittu · {visibleTasks.length}/{normalizedTasks.length} riviä · Snedo Aikataulu 1.5 (testi)</span>
         </footer>
 
         <input
