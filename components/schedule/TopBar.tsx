@@ -17,6 +17,7 @@ type Props = {
   onTogglePlanningColumns: () => void;
   onToggleTrackingColumns: () => void;
   onSaveBaseline: () => void;
+  onOpenMilestones: () => void;
   onOpenView: () => void;
   onExportJson: () => void;
   onImportJson: () => void;
@@ -69,6 +70,7 @@ export function TopBar(props: Props) {
           <details className="more-menu">
             <summary>Lisää ▾</summary>
             <div className="more-menu-popover">
+              <button onClick={props.onOpenMilestones}>Välitavoitteet…</button>
               <button onClick={props.onSaveBaseline}>Tallenna tavoite</button>
               <button onClick={props.onCalculateDependencies}>Laske riippuvuudet</button>
               <div className="more-menu-divider" />
