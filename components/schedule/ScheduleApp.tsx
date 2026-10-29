@@ -1191,7 +1191,7 @@ export default function ScheduleApp() {
 
         <footer className="statusbar">
           <span>{projectNumber} · {projectName}</span>
-          <span>{selectedIds.size} valittu · {visibleTasks.length}/{normalizedTasks.length} riviä · Snedo Aikataulu 1.1 (testi)</span>
+          <span>{selectedIds.size} valittu · {visibleTasks.length}/{normalizedTasks.length} riviä · Snedo Aikataulu 1.5 (testi)</span>
         </footer>
 
         <input
