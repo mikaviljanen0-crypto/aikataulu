@@ -86,7 +86,7 @@ export function PrintReport(props: Props) {
   const starts = leaves.map((task) => task.start).sort();
   const ends = leaves.map((task) => workdayEnd(task.start, task.duration, props.extraDaysOff)).sort();
   const milestoneDates = props.milestones.filter(item => /^\d{4}-\d{2}-\d{2}$/.test(item.date)).map(item => item.date);
-  const first = [...starts, ...milestoneDates, props.statusDate].sort()[0] ?? props.statusDate;
+  const first = [...starts, ...milestoneDates].sort()[0] ?? props.statusDate;
   const last = [...ends, ...milestoneDates].sort().at(-1) ?? props.statusDate;
   // Lukitaan aikajanan ulkoreunat kokonaisiin kalenteriviikkoihin:
   // kaikki viikkonumerot saavat yhtä leveän seitsemän päivän sarakkeen.
