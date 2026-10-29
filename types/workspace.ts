@@ -9,6 +9,13 @@ export type TrackingSnapshot = {
   tasks: Task[];
 };
 
+/** Käyttäjän itse määrittämä, työvaiheista riippumaton sopimusvälitavoite. */
+export type ScheduleMilestone = {
+  id: string;
+  title: string;
+  date: string;
+};
+
 export type StoredProject = {
   version: 1;
   projectNumber: string;
@@ -18,6 +25,7 @@ export type StoredProject = {
   tasks: Task[];
   snapshots?: TrackingSnapshot[];
   extraDaysOff?: string[];
+  milestones?: ScheduleMilestone[];
 };
 
 export type ProjectListing = {
