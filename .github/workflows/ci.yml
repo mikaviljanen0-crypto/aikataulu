@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - snedo-aikataulu-1-1-kaytettavyys
+      - snedo-aikataulu-1-6-yhteistallennus
 
 permissions:
   contents: read
@@ -55,27 +56,27 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Precompile static Snedo Aikataulu
+      - name: Precompile portal Snedo Aikataulu 1.6
         run: npm run build
         env:
           SNEDO_STATIC_EXPORT: '1'
-      - name: Verify static package serves locally
+          SNEDO_PORTAL_MODE: '1'
+          NEXT_PUBLIC_SNEDO_PORTAL_MODE: '1'
+      - name: Verify portal static package
         shell: bash
         run: |
           test -f out/index.html
-          node scripts/serve-static.mjs > /tmp/snedo-server.log 2>&1 &
-          for i in {1..20}; do
-            if curl --fail --silent http://127.0.0.1:3000/ > /tmp/snedo-index.html; then
-              break
-            fi
-            sleep 1
-          done
-          grep -q 'Snedo Aikataulu' /tmp/snedo-index.html
-          grep -q '/_next/' /tmp/snedo-index.html
+          grep -q 'Snedo Aikataulu' out/index.html
+          grep -q '/aikataulu/_next/' out/index.html
+          test -f server/server.mjs
+          test -f PORTAALI-KAYTTOONOTTO.md
       - uses: actions/upload-artifact@v4
         with:
-          name: Snedo-Aikataulu-1.5-valmis-paketti
-          path: out/
+          name: Snedo-Aikataulu-1.6-Portaali
+          path: |
+            out/
+            server/
+            PORTAALI-KAYTTOONOTTO.md
           if-no-files-found: error
           retention-days: 14
 
