@@ -9,6 +9,7 @@ import "../styles/ux.css";
 import "../styles/print.css";
 import "../styles/report.css";
 import "../styles/sticky-workspace.css";
+import "../styles/portal.css";
 
 export const metadata: Metadata = {
   title: "Snedo Aikataulu",

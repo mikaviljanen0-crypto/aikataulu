@@ -1,4 +1,6 @@
 type Props = {
+  readOnly?: boolean;
+  saveMessage?: string;
   projectNumber: string;
   projectName: string;
   scheduleName: string;
@@ -15,31 +17,31 @@ export function ProjectBar(props: Props) {
     <section className="projectbar">
       <label className="small-field">
         TYÖNUMERO
-        <input value={props.projectNumber} onChange={(e) => props.onProjectNumberChange(e.target.value)} />
+        <input disabled={props.readOnly} value={props.projectNumber} onChange={(e) => props.onProjectNumberChange(e.target.value)} />
       </label>
 
       <label>
         KOHDE
-        <input value={props.projectName} onChange={(e) => props.onProjectNameChange(e.target.value)} />
+        <input disabled={props.readOnly} value={props.projectName} onChange={(e) => props.onProjectNameChange(e.target.value)} />
       </label>
 
       <label>
         AIKATAULU
-        <input value={props.scheduleName} onChange={(e) => props.onScheduleNameChange(e.target.value)} />
+        <input disabled={props.readOnly} value={props.scheduleName} onChange={(e) => props.onScheduleNameChange(e.target.value)} />
       </label>
 
       <label className="status-field">
         SEURANTA
-        <input type="date" value={props.statusDate} onChange={(e) => props.onStatusDateChange(e.target.value)} />
+        <input disabled={props.readOnly} type="date" value={props.statusDate} onChange={(e) => props.onStatusDateChange(e.target.value)} />
       </label>
 
       <div className="status-stepper">
-        <button onClick={() => props.onShiftStatusDate(-35)}>← 5 vko</button>
-        <button onClick={() => props.onStatusDateChange(new Date().toISOString().slice(0,10))}>Tänään</button>
-        <button onClick={() => props.onShiftStatusDate(35)}>5 vko →</button>
+        <button disabled={props.readOnly} onClick={() => props.onShiftStatusDate(-35)}>← 5 vko</button>
+        <button disabled={props.readOnly} onClick={() => props.onStatusDateChange(new Date().toISOString().slice(0,10))}>Tänään</button>
+        <button disabled={props.readOnly} onClick={() => props.onShiftStatusDate(35)}>5 vko →</button>
       </div>
 
-      <span className="save-state">Tallennettu automaattisesti</span>
+      <span className="save-state">{props.saveMessage || "Tallennettu automaattisesti"}</span>
     </section>
   );
 }

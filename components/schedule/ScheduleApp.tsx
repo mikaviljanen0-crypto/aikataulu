@@ -30,6 +30,7 @@ import { getProjectPulse, isBehind, expectedProgress } from "@/lib/progress";
 import { getWbs } from "@/lib/wbs";
 import type { ProjectListing, StoredProject, TrackingSnapshot, ScheduleMilestone } from "@/types/workspace";
 import { MilestonesPanel } from "./MilestonesPanel";
+import { portalMode, remoteProjects, type RemoteContext } from "@/lib/remoteProjects";
 
 const STORAGE_KEY = "snedo-aikataulu-project-v1";
 const VIEW_STORAGE_KEY = "snedo-aikataulu-view-v1";
@@ -111,6 +112,16 @@ export default function ScheduleApp() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [milestonesOpen, setMilestonesOpen] = useState(false);
   const [milestones, setMilestones] = useState<ScheduleMilestone[]>([]);
+  const [remoteContext, setRemoteContext] = useState<RemoteContext | null>(null);
+  const [remoteReady, setRemoteReady] = useState(!portalMode);
+  const [remoteEditable, setRemoteEditable] = useState(false);
+  const [remoteSaveState, setRemoteSaveState] = useState("Tallennettu");
+  const [remoteError, setRemoteError] = useState("");
+  const remoteRevision = useRef(0);
+  const remoteLastSaved = useRef("");
+  const remoteSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remoteSaveQueue = useRef<Promise<void>>(Promise.resolve());
+  const remoteSwitching = useRef(false);
 
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +129,35 @@ export default function ScheduleApp() {
   /* LocalStorage hydration intentionally restores the persisted project once on mount. */
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    if (portalMode) {
+      void (async () => {
+        try {
+          const [context, listing] = await Promise.all([remoteProjects.context(), remoteProjects.list()]);
+          setRemoteContext(context);
+          setCatalog(listing.projects);
+          if (listing.projects.length) {
+            const first = await remoteProjects.get(listing.projects[0].id);
+            let editable = false;
+            if (context.role !== "read") {
+              try { await remoteProjects.lock(first.id); editable = true; } catch { /* Another editor. */ }
+            }
+            remoteRevision.current = first.revision;
+            remoteLastSaved.current = JSON.stringify(first.data);
+            applyProject(first.data, first.id);
+            setRemoteEditable(editable);
+          } else {
+            setActiveProjectId("");
+            setProjectsOpen(true);
+          }
+          setRemoteReady(true);
+          setLoaded(true);
+        } catch (error) {
+          setRemoteError(error instanceof Error ? error.message : "Palvelimeen ei saada yhteyttä.");
+          setRemoteReady(true);
+        }
+      })();
+      return;
+    }
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -285,6 +325,7 @@ export default function ScheduleApp() {
   }, [normalizedTasks, taskQuery, taskFilter, behindIds]);
   useEffect(() => {
     if (!loaded) return;
+    if (portalMode) return;
     const payload: StoredProject = {
       version: 1,
       projectNumber,
@@ -311,6 +352,43 @@ export default function ScheduleApp() {
       // Selaintallennuksen rajoitus ei saa estää työskentelyä. JSON-vienti on varmuuskopio.
     }
   }, [loaded, activeProjectId, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff, milestones]);
+
+  // Portal mode never writes project data to localStorage. Save to the selected company's server database.
+  useEffect(() => {
+    if (!portalMode || !loaded || !remoteEditable || !activeProjectId || remoteSwitching.current) return;
+    const payload = { version: 1 as const, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff, milestones };
+    if (JSON.stringify(payload) === remoteLastSaved.current) return;
+    if (remoteSaveTimer.current) clearTimeout(remoteSaveTimer.current);
+    setRemoteSaveState("Tallennetaan…");
+    remoteSaveTimer.current = setTimeout(() => { void saveRemote(payload, activeProjectId); }, 900);
+    return () => { if (remoteSaveTimer.current) clearTimeout(remoteSaveTimer.current); };
+  // saveRemote is intentionally invoked using this render's project snapshot; listing it would reschedule every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, remoteEditable, activeProjectId, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff, milestones]);
+
+  useEffect(() => {
+    if (!portalMode || !loaded || !remoteEditable || !activeProjectId) return;
+    const interval = setInterval(() => {
+      void remoteProjects.lock(activeProjectId).catch((error) => {
+        setRemoteEditable(false);
+        setRemoteError(`Muokkausvaraus päättyi: ${error instanceof Error ? error.message : "Yhteys katkesi."}`);
+      });
+    }, 45_000);
+    return () => clearInterval(interval);
+  }, [loaded, remoteEditable, activeProjectId]);
+
+  useEffect(() => {
+    if (!portalMode || !loaded || !remoteEditable || !activeProjectId) return;
+    const warnBeforeClose = (event: BeforeUnloadEvent) => {
+      const current = JSON.stringify({ version: 1, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff, milestones });
+      if (current !== remoteLastSaved.current) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", warnBeforeClose);
+    return () => window.removeEventListener("beforeunload", warnBeforeClose);
+  }, [loaded, remoteEditable, activeProjectId, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff, milestones]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -357,6 +435,7 @@ export default function ScheduleApp() {
   }
 
   function commit(next: Task[] | ((current: Task[]) => Task[])) {
+    if (portalMode && !remoteEditable) return;
     setTasks((current) => {
       const value = typeof next === "function" ? next(current) : next;
       if (JSON.stringify(value) === JSON.stringify(current)) return current;
@@ -567,6 +646,7 @@ export default function ScheduleApp() {
   }
 
   function undo() {
+    if (portalMode && !remoteEditable) return;
     if (!undoStack.length) return;
     const previous = undoStack.at(-1)!;
     setRedoStack((stack) => [...stack, cloneTasks(tasks)]);
@@ -575,6 +655,7 @@ export default function ScheduleApp() {
   }
 
   function redo() {
+    if (portalMode && !remoteEditable) return;
     if (!redoStack.length) return;
     const next = redoStack.at(-1)!;
     setUndoStack((stack) => [...stack, cloneTasks(tasks)]);
@@ -609,6 +690,7 @@ export default function ScheduleApp() {
   }
 
   function addMilestone(title: string, date: string) {
+    if (portalMode && !remoteEditable) return;
     setMilestones(current => [...current, {
       id: `vt-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
       title, date,
@@ -617,10 +699,12 @@ export default function ScheduleApp() {
   }
 
   function updateMilestone(id: string, patch: Partial<Pick<ScheduleMilestone, "title" | "date">>) {
+    if (portalMode && !remoteEditable) return;
     setMilestones(current => current.map(item => item.id === id ? {...item, ...patch} : item));
   }
 
   function removeMilestone(id: string) {
+    if (portalMode && !remoteEditable) return;
     setMilestones(current => current.filter(item => item.id !== id));
     flash("Välitavoite poistettu.");
   }
@@ -688,6 +772,7 @@ export default function ScheduleApp() {
   }
 
   async function importJsonFile(file: File) {
+    if (portalMode && !remoteEditable) return;
     try {
       const parsed = JSON.parse(await file.text()) as StoredProject;
       if (!Array.isArray(parsed.tasks) || !parsed.tasks.length) throw new Error();
@@ -746,6 +831,7 @@ export default function ScheduleApp() {
   }
 
   async function importCsvFile(file: File) {
+    if (portalMode && !remoteEditable) return;
     try {
       const text = (await file.text()).replace(/^\ufeff/, "");
       const lines = text.split(/\r?\n/).filter(Boolean);
@@ -780,11 +866,46 @@ export default function ScheduleApp() {
     return { version: 1, projectNumber, projectName, scheduleName, statusDate, tasks: cloneTasks(tasks), snapshots, extraDaysOff, milestones };
   }
 
+  async function saveRemote(data: StoredProject, id: string): Promise<boolean> {
+    if (!remoteEditable || !id) return false;
+    let success = true;
+    const serialized = JSON.stringify(data);
+    remoteSaveQueue.current = remoteSaveQueue.current.catch(() => {}).then(async () => {
+      if (serialized === remoteLastSaved.current) return;
+      const saved = await remoteProjects.save(id, remoteRevision.current, data);
+      remoteRevision.current = saved.revision;
+      remoteLastSaved.current = serialized;
+      setRemoteSaveState("Tallennettu palvelimelle");
+      setCatalog((entries) => entries.map((entry) => entry.id === id ? {
+        ...entry, updatedAt: saved.updatedAt, projectName: data.projectName,
+        projectNumber: data.projectNumber, scheduleName: data.scheduleName,
+      } : entry));
+    }).catch((error) => {
+      success = false;
+      setRemoteSaveState("Tallennus epäonnistui");
+      setRemoteError(`Muutoksia ei tallennettu: ${error instanceof Error ? error.message : "Tuntematon virhe"}. Vie JSON-varmuuskopio ennen sivun sulkemista.`);
+      setRemoteEditable(false);
+    });
+    await remoteSaveQueue.current;
+    return success;
+  }
+
+  async function flushRemote(): Promise<boolean> {
+    if (remoteSaveTimer.current) clearTimeout(remoteSaveTimer.current);
+    if (!remoteEditable || !activeProjectId) return true;
+    return saveRemote(currentPayload(), activeProjectId);
+  }
+
   function saveCurrentDirectly() {
+    if (portalMode) return;
     window.localStorage.setItem(PROJECT_DATA_PREFIX + activeProjectId, JSON.stringify(currentPayload()));
   }
 
   function refreshCatalog() {
+    if (portalMode) {
+      void remoteProjects.list().then(({ projects }) => setCatalog(projects)).catch((error) => setRemoteError(error.message));
+      return;
+    }
     try {
       const entries = JSON.parse(window.localStorage.getItem(PROJECT_INDEX_KEY) || "[]") as ProjectListing[];
       if (Array.isArray(entries)) setCatalog(entries);
@@ -829,6 +950,29 @@ export default function ScheduleApp() {
   }
 
   function openProject(id: string) {
+    if (portalMode) {
+      void (async () => {
+        const previous = activeProjectId;
+        if (!(await flushRemote())) return;
+        try {
+          const result = await remoteProjects.get(id);
+          let editable = false;
+          if (remoteContext?.role !== "read") {
+            try { await remoteProjects.lock(id); editable = true; } catch { /* Open read-only. */ }
+          }
+          if (previous && previous !== id) await remoteProjects.unlock(previous).catch(() => {});
+          remoteSwitching.current = true;
+          remoteRevision.current = result.revision;
+          remoteLastSaved.current = JSON.stringify(result.data);
+          applyProject(result.data, id);
+          setRemoteEditable(editable);
+          setRemoteError("");
+          setRemoteSaveState(editable ? "Tallennettu palvelimelle" : "Vain katselu");
+          queueMicrotask(() => { remoteSwitching.current = false; });
+        } catch (error) { setRemoteError(error instanceof Error ? error.message : "Avaaminen epäonnistui."); }
+      })();
+      return;
+    }
     const raw = window.localStorage.getItem(PROJECT_DATA_PREFIX + id);
     if (!raw) {
       flash("Projektin tietoja ei löytynyt tästä selaimesta.");
@@ -845,6 +989,31 @@ export default function ScheduleApp() {
   }
 
   function createProject(number: string, name: string) {
+    if (portalMode) {
+      if (remoteContext?.role === "read") return;
+      void (async () => {
+        if (!(await flushRemote())) return;
+        const start = new Date().toISOString().slice(0, 10);
+        const project: StoredProject = {
+          version: 1, projectNumber: number, projectName: name, scheduleName: "Yleisaikataulu", statusDate: start,
+          tasks: [{ id: Date.now(), name: "Työvaihe", start: nextWorkday(start), duration: 5, level: 0, type: "task", progress: 0 }],
+          snapshots: [], extraDaysOff: [], milestones: [],
+        };
+        try {
+          const created = await remoteProjects.create(project);
+          if (activeProjectId) await remoteProjects.unlock(activeProjectId).catch(() => {});
+          remoteRevision.current = created.revision;
+          remoteLastSaved.current = JSON.stringify(created.data);
+          applyProject(created.data, created.id);
+          setRemoteEditable(true);
+          const { projects } = await remoteProjects.list();
+          setCatalog(projects);
+          setRemoteError("");
+          flash(`Projekti "${name}" tallennettu palvelimelle.`);
+        } catch (error) { setRemoteError(error instanceof Error ? error.message : "Luonti epäonnistui."); }
+      })();
+      return;
+    }
     saveCurrentDirectly();
     const id = `work-${Date.now()}`;
     const start = new Date().toISOString().slice(0, 10);
@@ -871,6 +1040,29 @@ export default function ScheduleApp() {
   }
 
   function duplicateProject(id: string) {
+    if (portalMode) {
+      if (remoteContext?.role === "read") return;
+      void (async () => {
+        if (!(await flushRemote())) return;
+        try {
+          const original = await remoteProjects.get(id);
+          const copy: StoredProject = {
+            ...original.data, projectName: `${original.data.projectName} (kopio)`,
+            tasks: cloneTasks(original.data.tasks), snapshots: [],
+          };
+          const created = await remoteProjects.create(copy);
+          if (activeProjectId) await remoteProjects.unlock(activeProjectId).catch(() => {});
+          remoteRevision.current = created.revision;
+          remoteLastSaved.current = JSON.stringify(created.data);
+          applyProject(created.data, created.id);
+          setRemoteEditable(true);
+          const { projects } = await remoteProjects.list();
+          setCatalog(projects);
+          flash("Kopio tallennettu yrityksen tietokantaan.");
+        } catch (error) { setRemoteError(error instanceof Error ? error.message : "Kopiointi epäonnistui."); }
+      })();
+      return;
+    }
     try {
       const original = id === activeProjectId ? currentPayload() : JSON.parse(window.localStorage.getItem(PROJECT_DATA_PREFIX + id) || "null") as StoredProject;
       if (!original || !Array.isArray(original.tasks)) throw new Error();
@@ -892,6 +1084,7 @@ export default function ScheduleApp() {
   }
 
   function saveSnapshot(note: string) {
+    if (portalMode && !remoteEditable) return;
     const snapshot: TrackingSnapshot = {
       id: `snapshot-${Date.now()}`,
       statusDate,
@@ -901,10 +1094,11 @@ export default function ScheduleApp() {
       tasks: cloneTasks(tasks),
     };
     setSnapshots((current) => [...current, snapshot]);
-    flash("Työmaakokouksen tilannekuva tallennettu selaimeen.");
+    flash(portalMode ? "Tilannekuva tallennetaan palvelimelle." : "Työmaakokouksen tilannekuva tallennettu selaimeen.");
   }
 
   function restoreSnapshot(id: string) {
+    if (portalMode && !remoteEditable) return;
     const snapshot = snapshots.find((item) => item.id === id);
     if (!snapshot) return;
     if (!window.confirm("Palautetaanko tämän tilannekuvan aikataulu? Nykyiset työvaiheet korvataan. JSON-varmuuskopiota suositellaan.")) return;
@@ -971,9 +1165,26 @@ export default function ScheduleApp() {
     <main className="snedo-shell">
       <Sidebar active={activeNav} onNavigate={navigate} />
 
-      <section className="workspace">
+      <section className={portalMode && !remoteEditable ? "workspace portal-read-only" : "workspace"}>
+        {portalMode && <div className="portal-company-bar">
+          <strong>{remoteContext?.companyName || "TJT-Portaali"}</strong>
+          <span>{remoteContext?.userName || "Kirjaudutaan…"}</span>
+          <span>{remoteEditable ? remoteSaveState : "Vain katselu"}</span>
+          <button type="button" onClick={openProjects}>Kaikki aikataulut</button>
+          {remoteEditable && <button type="button" onClick={() => { void flushRemote(); }}>Tallenna nyt</button>}
+          {!remoteEditable && activeProjectId && remoteContext?.role !== "read" &&
+            <button type="button" onClick={() => { void remoteProjects.lock(activeProjectId).then(() => { setRemoteEditable(true); setRemoteError(""); }).catch((error) => setRemoteError(error.message)); }}>Varaa muokattavaksi</button>}
+          {!remoteEditable && activeProjectId && remoteContext?.role === "admin" &&
+            <button type="button" onClick={() => {
+              if (!window.confirm("Otetaanko muokkausvaraus toiselta käyttäjältä? Hänen tallentamattomat muutoksensa voivat jäädä tallentumatta.")) return;
+              void remoteProjects.lock(activeProjectId, true).then(() => { setRemoteEditable(true); setRemoteError(""); }).catch((error) => setRemoteError(error.message));
+            }}>Ota muokkaus hallintaan</button>}
+        </div>}
+        {portalMode && remoteError && <div className="portal-schedule-error" role="alert">{remoteError} <button type="button" onClick={exportJson}>Vie avoin aikataulu JSON-tiedostoksi</button></div>}
+        {portalMode && remoteReady && !activeProjectId && <div className="portal-schedule-empty">Yrityksellä ei ole vielä aikatauluja. <button type="button" onClick={openProjects}>Luo ensimmäinen aikataulu</button></div>}
         <div className="workspace-locked-header">
         <TopBar
+          readOnly={portalMode && !remoteEditable}
           modeLabel={activeNav === "week" ? "VIIKKONÄKYMÄ" : activeNav === "tracking" ? "TOTEUMASEURANTA" : "YLEISAIKATAULU"}
           onAddTask={addTask}
           onRemoveTask={removeTasks}
@@ -1003,6 +1214,8 @@ export default function ScheduleApp() {
         {message && <div className="schedule-message">{message}</div>}
 
         <ProjectBar
+          readOnly={portalMode && !remoteEditable}
+          saveMessage={portalMode ? remoteSaveState : undefined}
           projectNumber={projectNumber}
           projectName={projectName}
           scheduleName={scheduleName}
@@ -1132,6 +1345,9 @@ export default function ScheduleApp() {
         />
 
         <ProjectsPanel
+          portalMode={portalMode}
+          companyName={remoteContext?.companyName}
+          canCreate={!portalMode || remoteContext?.role !== "read"}
           open={projectsOpen}
           catalog={catalog}
           activeId={activeProjectId}
@@ -1191,7 +1407,7 @@ export default function ScheduleApp() {
 
         <footer className="statusbar">
           <span>{projectNumber} · {projectName}</span>
-          <span>{selectedIds.size} valittu · {visibleTasks.length}/{normalizedTasks.length} riviä · Snedo Aikataulu 1.5 (testi)</span>
+          <span>{selectedIds.size} valittu · {visibleTasks.length}/{normalizedTasks.length} riviä · Snedo Aikataulu {portalMode ? "1.6" : "1.5"}</span>
         </footer>
 
         <input

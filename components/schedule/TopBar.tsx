@@ -1,4 +1,5 @@
 type Props = {
+  readOnly?: boolean;
   showPlanningColumns: boolean;
   modeLabel?: string;
   showTrackingColumns: boolean;
@@ -35,21 +36,21 @@ export function TopBar(props: Props) {
 
       <nav className="topbar-actions">
         <div className="topbar-group">
-          <button disabled={!props.canUndo} onClick={props.onUndo} title="Kumoa (Ctrl+Z)">↶</button>
-          <button disabled={!props.canRedo} onClick={props.onRedo} title="Tee uudelleen (Ctrl+Y)">↷</button>
+          <button disabled={props.readOnly || !props.canUndo} onClick={props.onUndo} title="Kumoa (Ctrl+Z)">↶</button>
+          <button disabled={props.readOnly || !props.canRedo} onClick={props.onRedo} title="Tee uudelleen (Ctrl+Y)">↷</button>
         </div>
 
         <div className="topbar-group">
-          <button className="primary-action" onClick={props.onAddTask}>+ Työvaihe</button>
-          <button onClick={props.onCopyTask} title="Kopioi rivit (Ctrl+D)">Kopioi</button>
-          <button className="danger-text" onClick={() => { if (window.confirm("Poistetaanko valitut työvaiheet?")) props.onRemoveTask(); }}>Poista</button>
+          <button disabled={props.readOnly} className="primary-action" onClick={props.onAddTask}>+ Työvaihe</button>
+          <button disabled={props.readOnly} onClick={props.onCopyTask} title="Kopioi rivit (Ctrl+D)">Kopioi</button>
+          <button disabled={props.readOnly} className="danger-text" onClick={() => { if (window.confirm("Poistetaanko valitut työvaiheet?")) props.onRemoveTask(); }}>Poista</button>
         </div>
 
         <div className="topbar-group compact">
-          <button onClick={props.onIndent} title="Sisennä">→|</button>
-          <button onClick={props.onOutdent} title="Ulonna">|←</button>
-          <button onClick={props.onMoveUp} title="Siirrä ylös">↑</button>
-          <button onClick={props.onMoveDown} title="Siirrä alas">↓</button>
+          <button disabled={props.readOnly} onClick={props.onIndent} title="Sisennä">→|</button>
+          <button disabled={props.readOnly} onClick={props.onOutdent} title="Ulonna">|←</button>
+          <button disabled={props.readOnly} onClick={props.onMoveUp} title="Siirrä ylös">↑</button>
+          <button disabled={props.readOnly} onClick={props.onMoveDown} title="Siirrä alas">↓</button>
         </div>
 
         <div className="topbar-group topbar-group-right">
@@ -71,13 +72,13 @@ export function TopBar(props: Props) {
             <summary>Lisää ▾</summary>
             <div className="more-menu-popover">
               <button onClick={props.onOpenMilestones}>Välitavoitteet…</button>
-              <button onClick={props.onSaveBaseline}>Tallenna tavoite</button>
-              <button onClick={props.onCalculateDependencies}>Laske riippuvuudet</button>
+              <button disabled={props.readOnly} onClick={props.onSaveBaseline}>Tallenna tavoite</button>
+              <button disabled={props.readOnly} onClick={props.onCalculateDependencies}>Laske riippuvuudet</button>
               <div className="more-menu-divider" />
               <button onClick={props.onExportJson}>Varmuuskopio (JSON)</button>
-              <button onClick={props.onImportJson}>Avaa JSON</button>
+              <button disabled={props.readOnly} onClick={props.onImportJson}>Avaa JSON</button>
               <button onClick={props.onExportCsv}>Vie CSV</button>
-              <button onClick={props.onImportCsv}>Tuo CSV</button>
+              <button disabled={props.readOnly} onClick={props.onImportCsv}>Tuo CSV</button>
             </div>
           </details>
 

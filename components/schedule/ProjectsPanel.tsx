@@ -2,6 +2,9 @@ import { useState } from "react";
 import type { ProjectListing } from "@/types/workspace";
 
 type Props = {
+  portalMode?: boolean;
+  canCreate?: boolean;
+  companyName?: string;
   open: boolean;
   catalog: ProjectListing[];
   activeId: string;
@@ -15,6 +18,11 @@ function formatUpdated(value: string): string {
   if (!value) return "";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("fi-FI");
+}
+
+function lockOwner(entry: ProjectListing): string | null {
+  const lock = (entry as ProjectListing & { lock?: { userName: string } | null }).lock;
+  return lock?.userName ?? null;
 }
 
 export function ProjectsPanel(props: Props) {
@@ -31,11 +39,11 @@ export function ProjectsPanel(props: Props) {
     <div className="ux-overlay" role="presentation" onMouseDown={props.onClose}>
       <section className="ux-panel projects-panel" role="dialog" aria-modal="true" aria-label="Projektit" onMouseDown={(event) => event.stopPropagation()}>
         <header className="ux-panel-header">
-          <div><span>SNEDO / TYÖT</span><h2>Projektit</h2><p>Avaa tai aloita työmaan aikataulu.</p></div>
+          <div><span>{props.companyName || "SNEDO / TYÖT"}</span><h2>Projektit</h2><p>Avaa tai aloita työmaan aikataulu.</p></div>
           <button type="button" aria-label="Sulje" onClick={props.onClose}>×</button>
         </header>
 
-        <div className="new-project-card">
+        {props.canCreate !== false && <div className="new-project-card">
           <strong>+ Uusi aikataulu</strong>
           <div className="new-project-fields">
             <label>Työnumero<input value={newNumber} onChange={(e) => setNewNumber(e.target.value)} placeholder="27001" /></label>
@@ -45,7 +53,7 @@ export function ProjectsPanel(props: Props) {
               setNewNumber(""); setNewName("");
             }}>Luo</button>
           </div>
-        </div>
+        </div>}
 
         <div className="projects-search">
           <label htmlFor="search-schedules">Aiemmat projektit</label>
@@ -59,17 +67,18 @@ export function ProjectsPanel(props: Props) {
               <div className="project-tile-content">
                 <strong>{entry.projectName}</strong>
                 <span>{entry.projectNumber || "Ei työnumeroa"} · {entry.scheduleName}</span>
-                <small>Muokattu {formatUpdated(entry.updatedAt)}</small>
+                <small>Muokattu {formatUpdated(entry.updatedAt)}{("updatedBy" in entry && typeof entry.updatedBy === "string") ? ` · ${entry.updatedBy}` : ""}</small>
+                {lockOwner(entry) && <small>Muokattavana: {lockOwner(entry)}</small>}
               </div>
               <div className="project-tile-actions">
                 <button type="button" disabled={entry.id === props.activeId} onClick={() => props.onOpen(entry.id)}>{entry.id === props.activeId ? "Auki" : "Avaa"}</button>
-                <button type="button" onClick={() => props.onDuplicate(entry.id)} title="Tee erillinen kopio projektista">Kopioi</button>
+                {props.canCreate !== false && <button type="button" onClick={() => props.onDuplicate(entry.id)} title="Tee erillinen kopio projektista">Kopioi</button>}
               </div>
             </article>
           ))}
           {projects.length === 0 && <div className="ux-empty">Hakua vastaavia projekteja ei löytynyt.</div>}
         </div>
-        <p className="ux-panel-note">Projektit tallentuvat tällä hetkellä vain tämän tietokoneen selaimeen. Ota tärkeistä aikatauluista JSON-varmuuskopiot. Tiedot eivät vielä synkronoidu muiden käyttäjien kesken.</p>
+        <p className="ux-panel-note">{props.portalMode ? "Kaikki tämän yrityksen käyttäjät näkevät projektit. Muokkausvaraus estää päällekkäiset muutokset." : "Projektit tallentuvat tällä hetkellä vain tämän tietokoneen selaimeen. Ota tärkeistä aikatauluista JSON-varmuuskopiot. Tiedot eivät vielä synkronoidu muiden käyttäjien kesken."}</p>
       </section>
     </div>
   );
