@@ -129,3 +129,29 @@ jobs:
           npx playwright install chromium
       - name: Test interactivity on Windows
         run: node tests/browser-smoke.mjs
+
+
+  portal-browser-interaction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          SNEDO_STATIC_EXPORT: '1'
+          SNEDO_PORTAL_MODE: '1'
+          NEXT_PUBLIC_SNEDO_PORTAL_MODE: '1'
+      - run: |
+          npm install --no-save --package-lock=false playwright
+          npx playwright install --with-deps chromium
+      - run: node tests/portal-browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: portal-browser-debug
+          path: portal-browser-failure-*.png

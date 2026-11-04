@@ -86,3 +86,31 @@ Versio 1.5 tallensi aikataulut selaimen localStorageen. Niitä **ei saa automaat
 - Ota `C:\TJT\Data\Snedo-Aikataulu` mukaan nykyiseen portaalin varmuuskopiointiin ja säilytä lisäksi koneesta erillinen kopio.
 - Tarkista, että selaimen sulkeminen/avaaminen, eri käyttäjät, samaan projektiin kohdistuva muokkauslukko, verkkokatkos ja tietokannan palautus toimivat.
 - Käynnistä tuotantokäyttö vasta, kun portaali tunnistaa käyttäjät ja yritykset oikein eikä suoraa palvelinporttia voi käyttää ohittamaan käyttöoikeuksia.
+
+
+## TJT-Portaali-v1-liitos 4.11.2026
+
+Erillinen integraatiopaketti säilyttää portaalin nykyisen HTTPS-kirjautumisen.
+Aikataulu avataan `/aikataulu?company=<portaalin yritystunnus>`.
+Selain lähettää portaalin CSRF-tunnisteen ja välilehtikohtaisen tunnisteen.
+Portaali tarkistaa oikeuden jokaisella pyynnöllä ja muuntaa `tjt_katto`-tunnuksen
+Aikataulun `tjt-katto`-tunnukseksi. Selaimen yritysvalinta ei itsessään anna oikeutta.
+Kaikilla portaalissa yritykseen kuuluvilla käyttäjillä on aikataulujen lukuoikeus;
+muokkaus vaatii kyseisen yrityksen Aikataulu-ohjelman `edit`-oikeuden.
+
+Allekirjoitettu konteksti voi sisältää `lockId`-arvon, joka sitoo varauksen
+portaalin istuntoon ja välilehteen. Se ei ole käyttäjän henkilötunnus.
+Tuotannon ajopalvelu asettaa `SNEDO_STRICT_STORAGE=1`: kadonnutta tietokantaa
+ei korvata tyhjällä. Tietokannat alustetaan erikseen asennuksessa.
+
+Integraatiopaketti sijoittaa aikataulut portaalin aktiivisen datakansion
+`aikataulu-v1.6`-alihakemistoon. Näin nykyinen paikallinen ja Drive-varmistus
+sisältää kaikki kolme yritystä sekä käyttäjärekisterin. Palautus tehdään vain
+uuteen kansioon. Aikataulu 1.5:n localStorageen tai palveluun ei kosketa.
+
+Asennus alkaa vain lukevalla `01-Tarkista.ps1`-tarkistuksella.
+`02-Asenna-Rinnalle.ps1` tuo 1.6:n koekäyttöön vasta varmuuskopion ja
+Drive-palautuksen tarkistuksen jälkeen. Se käynnistää portaalin uudelleen,
+joten käyttäjät kirjautuvat uudelleen. Vanhan 1.5:n poistamiseen tai
+korvaamiseen ei sisälly komentoa. Oikeiden projektien JSON-tuonti ja
+käyttäjien selainkokeet tehdään ennen tuotantokäytön hyväksyntää.
