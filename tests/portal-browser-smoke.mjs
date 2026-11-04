@@ -50,5 +50,5 @@ try{
  await p.locator('input[type=file][accept*="json"]').setInputFiles({name:'muutos.jana.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...payload,projectName:'Tallentamaton'}))});
  await p.getByRole('alert').filter({hasText:'Muutoksia ei tallennettu'}).waitFor();const before=p.url();await p.getByRole('button',{name:'← TJT-pääsivulle',exact:true}).click();assert.equal(p.url(),before);
  assert.deepEqual(errors,[]);console.log('PORTAL BROWSER PASS: create, 1.5 JSON import, persistent save, shared read, read-only UI, second-tab lock, company selection, return and failed-save retention.');
-}catch(e){if(browser){for(const c of browser.contexts())for(const p of c.pages()){await p.screenshot({path:'portal-browser-failure.png'}).catch(()=>{});break;}}throw e;}
+}catch(e){if(browser){let i=0;for(const c of browser.contexts())for(const p of c.pages()){console.error('FAILURE PAGE',p.url(),(await p.locator('body').innerText()).slice(0,1200));await p.screenshot({path:'portal-browser-failure-'+(i++)+'.png'}).catch(()=>{});}}throw e;}
 finally{if(browser)await browser.close();await new Promise(r=>proxy.close(r));if(service){const done=once(service,'exit');service.kill();await done;}await rm(root,{recursive:true,force:true});}

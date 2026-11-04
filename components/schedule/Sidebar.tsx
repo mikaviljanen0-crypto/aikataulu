@@ -1,5 +1,6 @@
 type Props = {
   active: string;
+  portalMode?: boolean;
   onNavigate: (key: string) => void;
 };
 
@@ -13,7 +14,7 @@ const rows = [
   ["import", "⇩", "Tuo JSON-tiedosto"],
 ];
 
-export function Sidebar({ active, onNavigate }: Props) {
+export function Sidebar({ active, onNavigate, portalMode = false }: Props) {
   return (
     <aside className="snedo-sidebar">
       <div className="snedo-brand">
@@ -44,8 +45,9 @@ export function Sidebar({ active, onNavigate }: Props) {
       <div className="sidebar-spacer" />
       <div className="sidebar-user">
         <div className="user-avatar">S</div>
-        <div><strong>Paikallinen työtila</strong><span>Tiedot tällä selaimella</span></div>
+        <div><strong>{portalMode ? "Yrityksen työtila" : "Paikallinen työtila"}</strong><span>{portalMode ? "Yhteinen palvelintallennus" : "Tiedot tällä selaimella"}</span></div>
       </div>
     </aside>
   );
 }
+

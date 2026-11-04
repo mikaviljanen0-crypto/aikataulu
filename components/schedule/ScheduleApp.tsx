@@ -105,7 +105,7 @@ export default function ScheduleApp() {
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("all");
   const [projectsOpen, setProjectsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [activeProjectId, setActiveProjectId] = useState("main-project");
+  const [activeProjectId, setActiveProjectId] = useState(portalMode ? "" : "main-project");
   const [catalog, setCatalog] = useState<ProjectListing[]>([]);
   const [snapshots, setSnapshots] = useState<TrackingSnapshot[]>([]);
   const [extraDaysOff, setExtraDaysOff] = useState<string[]>([]);
@@ -1171,9 +1171,11 @@ export default function ScheduleApp() {
     }
   }
 
+  if (portalMode && !remoteReady) return <main className="snedo-shell"><p role="status">Haetaan yrityksen aikatauluja…</p></main>;
+
   return (
     <main className="snedo-shell">
-      <Sidebar active={activeNav} onNavigate={navigate} />
+      <Sidebar active={activeNav} onNavigate={navigate} portalMode={portalMode} />
 
       <section className={portalMode && !remoteEditable ? "workspace portal-read-only" : "workspace"}>
         {portalMode && <div className="portal-company-bar">

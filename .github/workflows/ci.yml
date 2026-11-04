@@ -154,4 +154,4 @@ jobs:
         if: failure()
         with:
           name: portal-browser-debug
-          path: portal-browser-failure.png
+          path: portal-browser-failure-*.png
