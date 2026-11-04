@@ -16,7 +16,7 @@ if (!secret || Buffer.byteLength(secret) < 32) {
   throw new Error("TJT_PORTAL_SCHEDULE_SECRET must be set (at least 32 bytes). Never publish the server without portal authentication.");
 }
 
-const store = createStore(dataDir);
+const store = createStore(dataDir, { strict: process.env.SNEDO_STRICT_STORAGE === "1" });
 const basePath = "/aikataulu";
 const maxBody = 5_500_000;
 
@@ -45,12 +45,12 @@ function json(response, status, payload) {
 }
 
 async function bodyJson(request) {
-  let text = "";
+  let size = 0; const chunks = [];
   for await (const chunk of request) {
-    text += chunk.toString("utf8");
-    if (Buffer.byteLength(text) > maxBody) throw new StoreError(413, "Liian suuri tiedosto.");
+    chunks.push(chunk); size += chunk.length;
+    if (size > maxBody) throw new StoreError(413, "Liian suuri tiedosto.");
   }
-  try { return JSON.parse(text); } catch { throw new StoreError(400, "Virheellinen JSON."); }
+  try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { throw new StoreError(400, "Virheellinen JSON."); }
 }
 
 async function api(request, response, pathname) {
@@ -121,3 +121,4 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, host, () => console.log(`Snedo Aikataulu v1.6 listening on http://${host}:${port}${basePath}`));
+

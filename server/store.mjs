@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, open, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -21,14 +21,14 @@ function filePath(dataDir, company) {
   return join(dataDir, company, "projects.json");
 }
 
-async function readDatabase(dataDir, company) {
+async function readDatabase(dataDir, company, strict = false) {
   const path = filePath(dataDir, company);
   try {
     const content = JSON.parse(await readFile(path, "utf8"));
-    if (!content || content.version !== 1 || !Array.isArray(content.projects)) throw new Error("Invalid database");
+    if (!content || content.version !== 1 || content.company !== company || !Array.isArray(content.projects)) throw new Error("Invalid database");
     return content;
   } catch (error) {
-    if (error.code === "ENOENT") return { version: 1, company, projects: [] };
+    if (!strict && error.code === "ENOENT") return { version: 1, company, projects: [] };
     throw error;
   }
 }
@@ -37,8 +37,10 @@ async function writeDatabase(dataDir, company, database) {
   const path = filePath(dataDir, company);
   await mkdir(join(dataDir, company), { recursive: true });
   const temporary = `${path}.${randomUUID()}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(database)}\n`, { flag: "wx" });
-  await rename(temporary, path);
+  const file = await open(temporary, "wx", 0o600);
+  try { await file.writeFile(`${JSON.stringify(database)}\n`); await file.sync(); }
+  finally { await file.close(); }
+  try { await rename(temporary, path); } catch (error) { await unlink(temporary).catch(() => {}); throw error; }
 }
 
 function serial(company, operation) {
@@ -91,54 +93,54 @@ function validatePayload(data) {
   if (bytes > 5_000_000) throw new StoreError(413, "Aikataulun koko ylittää rajan.");
 }
 
-export function createStore(dataDir) {
+export function createStore(dataDir, { strict = false } = {}) {
   return {
     async list(company) {
-      const db = await readDatabase(dataDir, company);
+      const db = await readDatabase(dataDir, company, strict);
       return db.projects.map(({ id, revision, data, updatedAt, updatedBy }) => ({
         id, revision, projectName: data.projectName, projectNumber: data.projectNumber,
         scheduleName: data.scheduleName, updatedAt, updatedBy, lock: publicLock(liveLock(company, id)),
       })).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     },
     async get(company, id) {
-      const project = requireProject(await readDatabase(dataDir, company), id);
+      const project = requireProject(await readDatabase(dataDir, company, strict), id);
       return { ...project, lock: publicLock(liveLock(company, id)) };
     },
     async create(company, actor, data) {
       validatePayload(data);
       return serial(company, async () => {
-        const db = await readDatabase(dataDir, company);
+        const db = await readDatabase(dataDir, company, strict);
         const project = { id: randomUUID(), revision: 1, data, updatedAt: new Date().toISOString(), updatedBy: actor.userName };
         db.projects.push(project);
         await writeDatabase(dataDir, company, db);
-        locks.set(key(company, project.id), { userId: actor.userId, userName: actor.userName, expiresAt: Date.now() + LOCK_MS });
+        locks.set(key(company, project.id), { lockId: actor.lockId, userId: actor.userId, userName: actor.userName, expiresAt: Date.now() + LOCK_MS });
         return { ...project, lock: publicLock(liveLock(company, project.id)) };
       });
     },
     async acquire(company, id, actor, takeover = false) {
       return serial(company, async () => {
-        requireProject(await readDatabase(dataDir, company), id);
+        requireProject(await readDatabase(dataDir, company, strict), id);
         const current = liveLock(company, id);
-        if (current && current.userId !== actor.userId && !takeover) {
+        if (current && (current.lockId || current.userId) !== (actor.lockId || actor.userId) && !takeover) {
           throw new StoreError(423, "Toinen käyttäjä muokkaa aikataulua.", { lock: publicLock(current) });
         }
-        const lock = { userId: actor.userId, userName: actor.userName, expiresAt: Date.now() + LOCK_MS };
+        const lock = { lockId: actor.lockId, userId: actor.userId, userName: actor.userName, expiresAt: Date.now() + LOCK_MS };
         locks.set(key(company, id), lock);
         return publicLock(lock);
       });
     },
     async release(company, id, actor, admin = false) {
       const current = liveLock(company, id);
-      if (current && (current.userId === actor.userId || admin)) locks.delete(key(company, id));
+      if (current && ((current.lockId || current.userId) === (actor.lockId || actor.userId) || admin)) locks.delete(key(company, id));
       return null;
     },
     async update(company, id, actor, expectedRevision, data) {
       validatePayload(data);
       return serial(company, async () => {
-        const db = await readDatabase(dataDir, company);
+        const db = await readDatabase(dataDir, company, strict);
         const project = requireProject(db, id);
         const current = liveLock(company, id);
-        if (!current || current.userId !== actor.userId) {
+        if (!current || (current.lockId || current.userId) !== (actor.lockId || actor.userId)) {
           throw new StoreError(423, "Muokkausvarausta ei ole. Muutoksia ei tallennettu.", { lock: publicLock(current) });
         }
         if (!Number.isSafeInteger(expectedRevision) || project.revision !== expectedRevision) {
@@ -155,3 +157,4 @@ export function createStore(dataDir) {
     },
   };
 }
+

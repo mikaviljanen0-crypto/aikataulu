@@ -2,6 +2,18 @@ import type { StoredProject } from "@/types/workspace";
 
 export const portalMode = process.env.NEXT_PUBLIC_SNEDO_PORTAL_MODE === "1";
 const root = "/aikataulu/api";
+let portalSession: Promise<{ csrf: string }> | null = null;
+let tabId = "";
+function session() {
+  if (!portalSession) portalSession = fetch("/portal-api/me", { credentials: "same-origin", cache: "no-store" })
+    .then(async response => {
+      if (!response.ok) throw new Error("Kirjaudu ensin TJT:n pääsivulla.");
+      const value = await response.json();
+      if (typeof value.csrf !== "string") throw new Error("Istunnon vahvistus puuttuu.");
+      return value as { csrf: string };
+    }).catch(error => { portalSession = null; throw error; });
+  return portalSession;
+}
 
 export type RemoteContext = { companyId: string; companyName: string; userId: string; userName: string; role: "read" | "edit" | "admin" };
 export type RemoteLock = { userId: string; userName: string; expiresAt: string } | null;
@@ -13,10 +25,15 @@ export class RemoteError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const company = new URLSearchParams(window.location.search).get("company");
+  if (!company || !["tjt", "tjt_katto", "previmek"].includes(company)) throw new Error("Valitse yritys TJT:n pääsivulla.");
+  const { csrf } = await session();
+  if (!tabId) tabId = crypto.randomUUID();
   const response = await fetch(`${root}${path}`, {
     ...init,
     credentials: "same-origin",
-    headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
+    cache: "no-store",
+    headers: { ...(init?.headers ?? {}), "content-type": "application/json", "x-tjt-company": company, "x-tjt-csrf": csrf, "x-tjt-tab": tabId },
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) throw new RemoteError(result.error || "Palvelin ei vastannut.", response.status);
@@ -32,3 +49,4 @@ export const remoteProjects = {
   lock: (id: string, takeover = false) => request<{ lock: RemoteLock }>(`/projects/${encodeURIComponent(id)}/lock`, { method: "POST", body: JSON.stringify({ takeover }) }),
   unlock: (id: string) => request<{ lock: null }>(`/projects/${encodeURIComponent(id)}/lock`, { method: "DELETE" }),
 };
+

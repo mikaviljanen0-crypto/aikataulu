@@ -122,6 +122,7 @@ export default function ScheduleApp() {
   const remoteSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const remoteSaveQueue = useRef<Promise<void>>(Promise.resolve());
   const remoteSwitching = useRef(false);
+  const remoteHasUnsaved = useRef(false);
 
   const jsonInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
@@ -359,6 +360,7 @@ export default function ScheduleApp() {
     const payload = { version: 1 as const, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff, milestones };
     if (JSON.stringify(payload) === remoteLastSaved.current) return;
     if (remoteSaveTimer.current) clearTimeout(remoteSaveTimer.current);
+    remoteHasUnsaved.current = true;
     setRemoteSaveState("Tallennetaan…");
     remoteSaveTimer.current = setTimeout(() => { void saveRemote(payload, activeProjectId); }, 900);
     return () => { if (remoteSaveTimer.current) clearTimeout(remoteSaveTimer.current); };
@@ -378,10 +380,10 @@ export default function ScheduleApp() {
   }, [loaded, remoteEditable, activeProjectId]);
 
   useEffect(() => {
-    if (!portalMode || !loaded || !remoteEditable || !activeProjectId) return;
+    if (!portalMode || !loaded || !activeProjectId) return;
     const warnBeforeClose = (event: BeforeUnloadEvent) => {
       const current = JSON.stringify({ version: 1, projectNumber, projectName, scheduleName, statusDate, tasks, snapshots, extraDaysOff, milestones });
-      if (current !== remoteLastSaved.current) {
+      if (remoteHasUnsaved.current && current !== remoteLastSaved.current) {
         event.preventDefault();
         event.returnValue = "";
       }
@@ -892,7 +894,14 @@ export default function ScheduleApp() {
 
   async function flushRemote(): Promise<boolean> {
     if (remoteSaveTimer.current) clearTimeout(remoteSaveTimer.current);
-    if (!remoteEditable || !activeProjectId) return true;
+    if (!activeProjectId) return true;
+    if (!remoteEditable) {
+      if (remoteHasUnsaved.current && JSON.stringify(currentPayload()) !== remoteLastSaved.current) {
+        setRemoteError("Avoimessa aikataulussa on tallentamattomia muutoksia. Vie JSON-varmuuskopio ennen poistumista tai varaa aikataulu uudelleen ja tallenna.");
+        return false;
+      }
+      return true;
+    }
     return saveRemote(currentPayload(), activeProjectId);
   }
 
@@ -920,6 +929,7 @@ export default function ScheduleApp() {
   }
 
   function applyProject(project: StoredProject, id: string) {
+    remoteHasUnsaved.current = false;
     setActiveProjectId(id);
     setProjectNumber(project.projectNumber || "");
     setProjectName(project.projectName || "");
@@ -1167,6 +1177,11 @@ export default function ScheduleApp() {
 
       <section className={portalMode && !remoteEditable ? "workspace portal-read-only" : "workspace"}>
         {portalMode && <div className="portal-company-bar">
+          <button type="button" onClick={() => { void (async () => {
+            if (!await flushRemote()) return;
+            if (activeProjectId && remoteEditable) await remoteProjects.unlock(activeProjectId).catch(() => {});
+            window.location.href = "/?company=" + encodeURIComponent(new URLSearchParams(window.location.search).get("company") || "");
+          })(); }}>← TJT-pääsivulle</button>
           <strong>{remoteContext?.companyName || "TJT-Portaali"}</strong>
           <span>{remoteContext?.userName || "Kirjaudutaan…"}</span>
           <span>{remoteEditable ? remoteSaveState : "Vain katselu"}</span>
@@ -1436,3 +1451,4 @@ export default function ScheduleApp() {
     </main>
   );
 }
+
