@@ -70,10 +70,11 @@ export function normalizeSummaries(tasks: Task[], extraDaysOff: string[] = []): 
 }
 
 export function isHiddenByCollapsedParent(tasks: Task[], index: number): boolean {
-  const level = tasks[index].level;
+  let level = tasks[index].level;
   for (let i = index - 1; i >= 0; i -= 1) {
     if (tasks[i].level < level) {
       if (tasks[i].collapsed) return true;
+      level = tasks[i].level;
       if (tasks[i].level === 0) break;
     }
   }

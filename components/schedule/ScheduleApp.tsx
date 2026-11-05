@@ -78,6 +78,8 @@ export default function ScheduleApp() {
   const [scheduleName, setScheduleName] = useState("Yleisaikataulu");
   const [statusDate, setStatusDate] = useState("2026-08-31");
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  // Portal folding is this tab's view state, never shared project data.
+  const [collapsedView, setCollapsedView] = useState<Record<number, boolean>>({});
   const [selectedIds, setSelectedIds] = useState<Set<number>>(
     new Set([initialTasks[0].id]),
   );
@@ -246,6 +248,11 @@ export default function ScheduleApp() {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const normalizedTasks = useMemo(() => normalizeSummaries(tasks, extraDaysOff), [tasks, extraDaysOff]);
+  const displayTasks = useMemo(() => portalMode
+    ? normalizedTasks.map((task) => Object.hasOwn(collapsedView, task.id)
+      ? { ...task, collapsed: collapsedView[task.id] }
+      : task)
+    : normalizedTasks, [normalizedTasks, collapsedView]);
   const pulse = useMemo(() => getProjectPulse(normalizedTasks, statusDate, extraDaysOff), [normalizedTasks, statusDate, extraDaysOff]);
   const criticalTaskIds = useMemo(
     () => getCriticalTaskIds(normalizedTasks),
@@ -285,7 +292,7 @@ export default function ScheduleApp() {
   const visibleTasks = useMemo(() => {
     const term = taskQuery.trim().toLocaleLowerCase("fi-FI");
     if (!term && taskFilter === "all") {
-      return normalizedTasks.filter((_, index) => !isHiddenByCollapsedParent(normalizedTasks, index));
+      return displayTasks.filter((_, index) => !isHiddenByCollapsedParent(displayTasks, index));
     }
 
     const includesTerm = (task: Task) =>
@@ -322,8 +329,8 @@ export default function ScheduleApp() {
       }
     });
     // Haussa näytetään osumat myös aiemmin suljettujen summarivien alta.
-    return normalizedTasks.filter((task) => shown.has(task.id));
-  }, [normalizedTasks, taskQuery, taskFilter, behindIds]);
+    return displayTasks.filter((task) => shown.has(task.id));
+  }, [normalizedTasks, displayTasks, taskQuery, taskFilter, behindIds]);
   useEffect(() => {
     if (!loaded) return;
     if (portalMode) return;
@@ -642,6 +649,12 @@ export default function ScheduleApp() {
   }
 
   function toggleCollapse(id: number) {
+    if (portalMode) {
+      const task = normalizedTasks.find((item) => item.id === id);
+      if (!task || task.type !== "summary") return;
+      setCollapsedView((current) => ({ ...current, [id]: !(current[id] ?? task.collapsed ?? false) }));
+      return;
+    }
     updateTask(id, {
       collapsed: !tasks.find((task) => task.id === id)?.collapsed,
     });
@@ -789,6 +802,7 @@ export default function ScheduleApp() {
       setExtraDaysOff(Array.isArray(parsed.extraDaysOff) ? parsed.extraDaysOff : []);
       setMilestones(Array.isArray(parsed.milestones) ? parsed.milestones : []);
       setTasks(parsed.tasks);
+      setCollapsedView({});
       setSelectedIds(new Set([parsed.tasks[0].id]));
       setSelectionAnchorId(parsed.tasks[0].id);
       flash("Aikataulu tuotu JSON-tiedostosta.");
@@ -930,6 +944,7 @@ export default function ScheduleApp() {
 
   function applyProject(project: StoredProject, id: string) {
     remoteHasUnsaved.current = false;
+    setCollapsedView({});
     setActiveProjectId(id);
     setProjectNumber(project.projectNumber || "");
     setProjectName(project.projectName || "");
@@ -1289,7 +1304,7 @@ export default function ScheduleApp() {
           }}
         >
           <TaskTable
-            tasks={normalizedTasks}
+            tasks={displayTasks}
             visibleTasks={visibleTasks}
             selectedIds={selectedIds}
             criticalTaskIds={criticalTaskIds}

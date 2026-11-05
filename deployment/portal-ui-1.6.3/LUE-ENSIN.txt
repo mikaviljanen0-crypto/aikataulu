@@ -1,0 +1,32 @@
+AIKATAULU 1.6.3 – ALATEHTÄVIEN AVAAMINEN JA SULKEMINEN
+
+Korjaus asennettuun Aikataulu 1.6 -portaaliliitokseen, jossa selainosan
+ulkoasupäivitys 1.6.2 on jo käytössä. Sopii myös sen jälkeen asennettuun
+Aluesuunnitelma 1.0 -kokonaisuuteen.
+
+1. Tallenna mahdolliset keskeneräiset aikataulumuutokset.
+2. Pura ZIP TJT-PALVELIMELLA kansioon:
+   C:\TJT\Asennus\Aikataulu-1.6.3-Alatehtavat
+3. Avaa palvelimella PowerShell järjestelmänvalvojana ja suorita:
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\TJT\Asennus\Aikataulu-1.6.3-Alatehtavat\05-Paivita-Alatehtavat.ps1"
+
+4. Odota ilmoitusta ALATEHTAVIEN KORJAUS ASENNETTU.
+5. Päivitä aikataulusivu Ctrl+F5 jokaisella käyttävällä koneella.
+6. Kokeile ryhmän nimen vasemmalla puolella olevaa nuolta katselutilassa.
+   Alatehtävien tulee avautua ja sulkeutua ilman muokkausvarausta.
+
+Muutos koskee omaa välilehteä. Se ei tallenna ryhmien avaamista muiden
+käyttäjien aikatauluihin. Aikataulun uudelleenavaus palauttaa tallennetun
+lähtönäkymän. Sisäkkäisen ryhmän sulkeminen ei piilota viereisen ryhmän rivejä.
+Haku näyttää edelleen osumat myös suljetuista ryhmistä.
+
+Päivitys muuttaa vain aikataulun selainosan ja sen tiedostoluettelon.
+Aluesuunnitelma, laskenta, projektitiedot, käyttäjät, oikeudet ja
+varmuuskopiointiajastukset säilyvät. Palveluita ei käynnistetä uudelleen.
+Asennus tarkistaa tiedostot ja ottaa vanhasta selainosasta paikallisen kopion
+kansioon C:\TJT\Varmuuskopiot\TJT-Portaali-v1. Sama päivitys voidaan ajaa
+uudelleen; jo asennettu korjaus tunnistetaan automaattisesti.
+
+Jos tarkistus keskeytyy, lähetä PowerShellin ilmoitus keskusteluun.
+Älä aja vanhaa 02-Asenna-Rinnalle.ps1-asennusta tämän korjauksen tilalla.

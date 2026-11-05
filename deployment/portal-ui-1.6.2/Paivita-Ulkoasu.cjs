@@ -26,7 +26,7 @@ function matches(file, hash) {
 function check(root, app) {
   noLinks(root); noLinks(app);
   const patch = read(path.join(root, 'ulkoasu.json'));
-  if (patch.format !== 'tjt-schedule-ui-1.6.2' || !patch.previous || !patch.files || !patch.files['schedule/out/index.html']) throw Error('Tuntematon ulkoasupaivitys.');
+  if (!['tjt-schedule-ui-1.6.2', 'tjt-schedule-ui-1.6.3'].includes(patch.format) || !patch.previous || !patch.files || !patch.files['schedule/out/index.html']) throw Error('Tuntematon ulkoasupaivitys.');
   for (const [relative, hash] of Object.entries(patch.files)) {
     if (!matches(safePath(path.join(root, 'payload'), relative, true), hash)) throw Error('Paketin tiedosto ei tasmaa: ' + relative);
   }
@@ -64,7 +64,7 @@ function apply(root, app, backups, options = {}) {
   try {
     const { patch, manifest, already } = check(root, app);
     if (already) return { already: true };
-    const backup = path.join(backups, 'Aikataulu-ulkoasu-1.6.2-' + new Date().toISOString().replace(/[:.]/g, '-') + '-' + crypto.randomUUID());
+    const backup = path.join(backups, 'Aikataulu-ulkoasu-' + patch.format.replace('tjt-schedule-ui-', '') + '-' + new Date().toISOString().replace(/[:.]/g, '-') + '-' + crypto.randomUUID());
     fs.mkdirSync(backup, { recursive: true, mode: 0o700 });
     const before = fs.readFileSync(path.join(app, 'manifest.json'));
     fs.writeFileSync(path.join(backup, 'manifest-before.json'), before, { flag: 'wx' });
@@ -116,7 +116,7 @@ module.exports = { check, apply };
 if (require.main === module) {
   try {
     const [command, app, backups] = process.argv.slice(2);
-    if (command !== 'apply' || !app || !backups) throw Error('Kayta mukana olevaa 04-Paivita-Ulkoasu.ps1-komentoa.');
+    if (command !== 'apply' || !app || !backups) throw Error('Kayta paketin mukana olevaa PowerShell-paivityskomentoa.');
     console.log(JSON.stringify(apply(__dirname, app, backups)));
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
