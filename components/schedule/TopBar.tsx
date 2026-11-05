@@ -31,7 +31,7 @@ export function TopBar(props: Props) {
     <header className="topbar">
       <div className="page-title">
         <span>{props.modeLabel ?? "YLEISAIKATAULU"}</span>
-        <strong>Snedo Aikataulu</strong>
+        <strong>Aikataulu</strong>
       </div>
 
       <nav className="topbar-actions">

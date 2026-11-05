@@ -19,14 +19,7 @@ export function Sidebar({ active, onNavigate, portalMode = false }: Props) {
     <aside className="snedo-sidebar">
       <div className="snedo-brand">
         <div className="snedo-mark">S</div>
-        <div><strong>SNEDO</strong><span>Rakentamisen ohjaus</span></div>
       </div>
-
-      <div className="sidebar-section-title">OHJELMISTOT</div>
-      <div className="sidebar-module muted">€ <span>Laskenta</span></div>
-      <div className="sidebar-module muted">◎ <span>Tavoitearvio</span></div>
-      <div className="sidebar-module muted">↗ <span>Kustannusseuranta</span></div>
-      <div className="sidebar-module active-module">▦ <span>Aikataulu</span></div>
 
       <div className="sidebar-section-title">AIKATAULU</div>
       <nav className="schedule-nav">

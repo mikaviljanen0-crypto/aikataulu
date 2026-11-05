@@ -41,6 +41,7 @@ try{
  await p.locator('input[type=file][accept*="json"]').setInputFiles({name:'vanha-1.5.jana.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(payload))});
  await p.getByRole('button',{name:'Tallenna nyt',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.portal-company-bar')?.textContent.includes('Tallennettu palvelimelle'));
  const db=JSON.parse(await readFile(join(root,'tjt/projects.json'),'utf8'));assert.equal(db.projects.length,1);assert.deepEqual(db.projects[0].data,payload);
+ if(process.env.SNEDO_QA_SCREENSHOT){await p.setViewportSize({width:1600,height:1000});await p.screenshot({path:process.env.SNEDO_QA_SCREENSHOT});}
  const rp=await open('reader');await rp.goto(origin+'/aikataulu?company=tjt');await rp.getByText('Vain katselu',{exact:true}).waitFor();assert(await rp.getByRole('button',{name:'+ Työvaihe',exact:true}).isDisabled());
  const second=await p.context().newPage();await second.goto(p.url());await second.getByText('Vain katselu',{exact:true}).waitFor();assert(await second.getByRole('button',{name:'+ Työvaihe',exact:true}).isDisabled());
  await p.getByRole('button',{name:'← TJT-pääsivulle',exact:true}).click();await p.getByRole('heading',{name:'TJT test portal'}).waitFor();
