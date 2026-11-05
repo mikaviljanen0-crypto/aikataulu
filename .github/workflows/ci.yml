@@ -44,6 +44,8 @@ jobs:
         run: npm ci
       - name: Start Webpack dev server and verify localhost
         run: node tests/windows-smoke.mjs
+      - name: Verify Windows UI update and rollback
+        run: node --test tests/ui-update.test.mjs
 
   offline-bundle:
     runs-on: ubuntu-latest
@@ -66,7 +68,7 @@ jobs:
         shell: bash
         run: |
           test -f out/index.html
-          grep -q 'Snedo Aikataulu' out/index.html
+          grep -q '<title>Aikataulu</title>' out/index.html
           grep -q '/aikataulu/_next/' out/index.html
           test -f server/server.mjs
           test -f PORTAALI-KAYTTOONOTTO.md
@@ -150,6 +152,14 @@ jobs:
           npm install --no-save --package-lock=false playwright
           npx playwright install --with-deps chromium
       - run: node tests/portal-browser-smoke.mjs
+        env:
+          SNEDO_QA_SCREENSHOT: portal-appearance.png
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: portal-appearance
+          path: portal-appearance.png
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

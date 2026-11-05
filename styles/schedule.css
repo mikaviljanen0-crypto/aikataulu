@@ -45,34 +45,12 @@
   font-size: 16px;
 }
 
-.snedo-brand > div:last-child { display: grid; line-height: 1.05; }
-.snedo-brand strong { font-size: 14px; letter-spacing: .09em; }
-.snedo-brand span { color: #6d7987; font-size: 9px; }
-
 .sidebar-section-title {
   padding: 14px 11px 6px;
   color: #8793a2;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: .1em;
-}
-
-.sidebar-module {
-  min-height: 31px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 0 12px;
-  border-left: 3px solid transparent;
-  font-size: 11px;
-}
-
-.sidebar-module.muted { color: #788494; }
-.sidebar-module.active-module {
-  background: #e8f0f9;
-  border-left-color: var(--primary);
-  color: #174f86;
-  font-weight: 700;
 }
 
 .schedule-nav { display: grid; gap: 1px; padding: 0 6px; }

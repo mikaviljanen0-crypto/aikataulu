@@ -37,7 +37,7 @@ try {
         signal: AbortSignal.timeout(5000),
       });
       const html = await res.text();
-      if (res.ok && html.includes("snedo-shell") && html.includes("Snedo Aikataulu")) {
+      if (res.ok && html.includes("snedo-shell") && html.includes("<title>Aikataulu</title>")) {
         passed = true;
         console.log("Windows localhost smoke test passed: GET / 200 and Snedo markup rendered.");
         break;

@@ -1,0 +1,25 @@
+#requires -Version 5.1
+[CmdletBinding()]param()
+Set-StrictMode -Version Latest
+$ErrorActionPreference='Stop'
+try {
+ $app='C:\TJT\Ohjelmat\TJT-Portaali-v1'
+ $update=Join-Path $PSScriptRoot 'alatehtavat-1.6.3'
+ $expected=@{'Paivita-Ulkoasu.cjs'='__UPDATER_SHA__';'ulkoasu.json'='__MANIFEST_SHA__'}
+ foreach($entry in $expected.GetEnumerator()) {
+  if((Get-FileHash -LiteralPath (Join-Path $update $entry.Key) -Algorithm SHA256).Hash -ne $entry.Value){throw ('Paivityspaketin tarkistussumma ei tasmaa: '+$entry.Key)}
+ }
+ . (Join-Path $app 'Yhteiset.ps1')
+ Assert-Environment
+ $config=Read-Config
+ if($config.phase -ne 'active' -or !($config.PSObject.Properties.Name -contains 'schedule') -or !$config.schedule.enabled){throw 'Aikataulun 1.6-portaaliliitoksen pitaa olla ensin kaytossa.'}
+ Assert-OwnTask $TjtServerTask (Join-Path $app 'server.cjs') 'TJT Portal server v1' | Out-Null
+ Assert-OwnTask 'TJT-Aikataulu-v1.6-Palvelin' (Join-Path $app 'schedule-service.cjs') 'TJT Schedule 1.6 loopback service' | Out-Null
+ Wait-Portal $false
+ Assert-NoLinks $TjtBackups
+ Write-Host 'Korjataan aikataulun alatehtavien avaaminen ja sulkeminen. Palvelut jatkavat kaynnissa.'
+ & $TjtNode (Join-Path $update 'Paivita-Ulkoasu.cjs') apply $app $TjtBackups
+ if($LASTEXITCODE -ne 0){throw 'Paivitys keskeytyi. Kopioi ylla oleva ilmoitus keskusteluun.'}
+ Write-Host 'ALATEHTAVIEN KORJAUS ASENNETTU: selainosa 1.6.3.' -ForegroundColor Green
+ Write-Host 'Tallenna avoin aikataulu ja paivita selaimen sivu Ctrl+F5.'
+} catch {Write-Host $_.Exception.Message -ForegroundColor Red;exit 1}

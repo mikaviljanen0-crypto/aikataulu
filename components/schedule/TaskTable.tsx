@@ -131,7 +131,11 @@ export function TaskTable({
                 <td className="task-name-cell">
                   {task.type === "summary" && (
                     <button
+                      type="button"
                       className="collapse-button"
+                      aria-expanded={!task.collapsed}
+                      aria-label={`${task.collapsed ? "Avaa" : "Sulje"} alatehtävät: ${task.name}`}
+                      title={task.collapsed ? "Avaa alatehtävät" : "Sulje alatehtävät"}
                       onClick={(event) => {
                         event.stopPropagation();
                         onToggleCollapse(task.id);

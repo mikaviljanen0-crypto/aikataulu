@@ -12,8 +12,8 @@ import "../styles/sticky-workspace.css";
 import "../styles/portal.css";
 
 export const metadata: Metadata = {
-  title: "Snedo Aikataulu",
-  description: "Snedon rakennustyömaan aikataulusuunnittelu ja työmaakokousten seuranta",
+  title: "Aikataulu",
+  description: "Rakennustyömaan aikataulusuunnittelu ja työmaakokousten seuranta",
 };
 
 export default function RootLayout({
